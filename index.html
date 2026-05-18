@@ -6,7 +6,6 @@
   <title>AI 即時手勢辨識猜拳</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
   <style>
     * {
@@ -56,6 +55,7 @@
       height: 100%;
       display: block;
       background: #050510;
+      z-index: 1;
     }
 
     #camera-mask {
@@ -65,11 +65,11 @@
       background:
         linear-gradient(
           180deg,
-          rgba(7, 7, 20, 0.88) 0%,
-          rgba(7, 7, 20, 0.25) 18%,
+          rgba(7, 7, 20, 0.78) 0%,
+          rgba(7, 7, 20, 0.18) 18%,
           transparent 36%,
           transparent 70%,
-          rgba(7, 7, 20, 0.66) 100%
+          rgba(7, 7, 20, 0.56) 100%
         );
       z-index: 4;
     }
@@ -386,6 +386,15 @@
     const roundFlash = document.getElementById("round-flash");
     const cameraError = document.getElementById("camera-error");
 
+    const HAND_CONNECTIONS_LOCAL = [
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16],
+      [13, 17], [17, 18], [18, 19], [19, 20],
+      [0, 17]
+    ];
+
     const GESTURE = {
       ROCK: "ROCK",
       PAPER: "PAPER",
@@ -415,12 +424,20 @@
     let stableGesture = GESTURE.UNKNOWN;
     let stableCount = 0;
     let startHoldFrames = 0;
+    let menuHoldFrames = 0;
 
     let countdownRunning = false;
     let gestureSamples = [];
     let thinkingTimer = null;
     let processingFrame = false;
     let hands = null;
+
+    let drawRect = {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0
+    };
 
     function resizeCanvas() {
       const dpr = window.devicePixelRatio || 1;
@@ -456,12 +473,31 @@
     }
 
     function isOkGesture(landmarks) {
-      const thumbIndexClose = distance(landmarks[4], landmarks[8]) < 0.065;
+      const thumbIndexClose = distance(landmarks[4], landmarks[8]) < 0.075;
       const middleUp = fingerIsExtended(landmarks, 12, 10, 9);
       const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
       const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
 
       return thumbIndexClose && middleUp && ringUp && pinkyUp;
+    }
+
+    function isVulcanGesture(landmarks) {
+      const indexUp = fingerIsExtended(landmarks, 8, 6, 5);
+      const middleUp = fingerIsExtended(landmarks, 12, 10, 9);
+      const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
+      const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
+
+      if (!(indexUp && middleUp && ringUp && pinkyUp)) return false;
+
+      const indexMiddleGap = distance(landmarks[8], landmarks[12]);
+      const middleRingGap = distance(landmarks[12], landmarks[16]);
+      const ringPinkyGap = distance(landmarks[16], landmarks[20]);
+
+      return (
+        middleRingGap > indexMiddleGap * 1.15 &&
+        middleRingGap > ringPinkyGap * 1.15 &&
+        middleRingGap > 0.055
+      );
     }
 
     function detectGesture(landmarks) {
@@ -476,12 +512,12 @@
         return GESTURE.CONTINUE;
       }
 
-      if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-        return GESTURE.START;
+      if (isVulcanGesture(landmarks)) {
+        return GESTURE.END;
       }
 
-      if (indexUp && middleUp && !ringUp && pinkyUp) {
-        return GESTURE.END;
+      if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        return GESTURE.START;
       }
 
       const extendedCount = [indexUp, middleUp, ringUp, pinkyUp].filter(Boolean).length;
@@ -501,7 +537,7 @@
         stableCount = 1;
       }
 
-      if (stableCount >= 4) {
+      if (stableCount >= 3) {
         stableGesture = gesture;
       }
     }
@@ -583,6 +619,8 @@
 
       gameState = "RESULT";
       countdownRunning = false;
+      startHoldFrames = 0;
+      menuHoldFrames = 0;
 
       gestureLabel.textContent = `你出：${gestureText[playerChoice]}`;
       gestureLabel.classList.add("show");
@@ -607,11 +645,16 @@
       gestureLabel.classList.remove("show");
       gestureSamples = [];
       startHoldFrames = 0;
-      gameState = "IDLE";
+      menuHoldFrames = 0;
       countdownRunning = false;
-      statusDisplay.textContent = "☝️ 請比開始手勢";
-      subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
-      bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
+
+      statusDisplay.textContent = "準備下一局";
+      subStatus.textContent = "請固定 ✊ 石頭、🖐️ 布或 ✌️ 剪刀";
+      bottomHint.textContent = "倒數結束時請固定手勢";
+
+      setTimeout(() => {
+        startCountdown();
+      }, 450);
     }
 
     function endGame() {
@@ -619,6 +662,8 @@
       gestureLabel.classList.remove("show");
       gameState = "ENDED";
       countdownRunning = false;
+      startHoldFrames = 0;
+      menuHoldFrames = 0;
       statusDisplay.textContent = "遊戲結束";
       subStatus.textContent = `最終成績：✅ ${wins}勝　❌ ${losses}敗　🤝 ${draws}平`;
       bottomHint.textContent = "重新整理頁面即可重新開始";
@@ -699,66 +744,74 @@
       const imageRatio = iw / ih;
       const canvasRatio = cw / ch;
 
-      let drawWidth;
-      let drawHeight;
-      let x;
-      let y;
-
       if (imageRatio > canvasRatio) {
-        drawHeight = ch;
-        drawWidth = drawHeight * imageRatio;
-        x = (cw - drawWidth) / 2;
-        y = 0;
+        drawRect.height = ch;
+        drawRect.width = drawRect.height * imageRatio;
+        drawRect.x = (cw - drawRect.width) / 2;
+        drawRect.y = 0;
       } else {
-        drawWidth = cw;
-        drawHeight = drawWidth / imageRatio;
-        x = 0;
-        y = (ch - drawHeight) / 2;
+        drawRect.width = cw;
+        drawRect.height = drawRect.width / imageRatio;
+        drawRect.x = 0;
+        drawRect.y = (ch - drawRect.height) / 2;
       }
 
       canvasCtx.save();
       canvasCtx.translate(cw, 0);
       canvasCtx.scale(-1, 1);
-      canvasCtx.drawImage(image, x, y, drawWidth, drawHeight);
+      canvasCtx.drawImage(image, drawRect.x, drawRect.y, drawRect.width, drawRect.height);
       canvasCtx.restore();
     }
 
+    function mapPoint(point) {
+      return {
+        x: drawRect.x + (1 - point.x) * drawRect.width,
+        y: drawRect.y + point.y * drawRect.height
+      };
+    }
+
     function drawPoint(point, radius, color) {
-      const cw = canvasElement.clientWidth;
-      const x = cw - point.x * cw;
-      const y = point.y * canvasElement.clientHeight;
+      const p = mapPoint(point);
 
       canvasCtx.beginPath();
-      canvasCtx.arc(x, y, radius, 0, Math.PI * 2);
+      canvasCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
       canvasCtx.fillStyle = color;
+      canvasCtx.shadowColor = color;
+      canvasCtx.shadowBlur = 10;
       canvasCtx.fill();
+      canvasCtx.shadowBlur = 0;
     }
 
     function drawLine(a, b, color, width) {
-      const cw = canvasElement.clientWidth;
-      const ch = canvasElement.clientHeight;
-
-      const ax = cw - a.x * cw;
-      const ay = a.y * ch;
-      const bx = cw - b.x * cw;
-      const by = b.y * ch;
+      const p1 = mapPoint(a);
+      const p2 = mapPoint(b);
 
       canvasCtx.beginPath();
-      canvasCtx.moveTo(ax, ay);
-      canvasCtx.lineTo(bx, by);
+      canvasCtx.moveTo(p1.x, p1.y);
+      canvasCtx.lineTo(p2.x, p2.y);
       canvasCtx.strokeStyle = color;
       canvasCtx.lineWidth = width;
       canvasCtx.lineCap = "round";
+      canvasCtx.lineJoin = "round";
+      canvasCtx.shadowColor = color;
+      canvasCtx.shadowBlur = 12;
       canvasCtx.stroke();
+      canvasCtx.shadowBlur = 0;
     }
 
     function drawHandSkeleton(landmarks) {
-      for (const [start, end] of HAND_CONNECTIONS) {
+      for (const [start, end] of HAND_CONNECTIONS_LOCAL) {
         drawLine(landmarks[start], landmarks[end], "#00ff88", 4);
       }
 
       for (let i = 0; i < landmarks.length; i++) {
-        drawPoint(landmarks[i], i === 0 ? 7 : 4, i === 0 ? "#d9265b" : "#ffffff");
+        if (i === 0) {
+          drawPoint(landmarks[i], 8, "#d9265b");
+        } else if ([4, 8, 12, 16, 20].includes(i)) {
+          drawPoint(landmarks[i], 5, "#00ff88");
+        } else {
+          drawPoint(landmarks[i], 4, "#ffffff");
+        }
       }
     }
 
@@ -786,12 +839,22 @@
       }
 
       if (gameState === "WAIT_CONTINUE") {
-        if (gesture === GESTURE.CONTINUE) {
-          continueGame();
+        if (gesture === GESTURE.CONTINUE || gesture === GESTURE.END) {
+          menuHoldFrames += 1;
+        } else {
+          menuHoldFrames = 0;
         }
 
-        if (gesture === GESTURE.END) {
-          endGame();
+        if (menuHoldFrames > 8) {
+          if (gesture === GESTURE.CONTINUE) {
+            continueGame();
+          }
+
+          if (gesture === GESTURE.END) {
+            endGame();
+          }
+
+          menuHoldFrames = 0;
         }
       }
     }
