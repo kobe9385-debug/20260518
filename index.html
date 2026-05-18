@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AI 手勢對戰終端</title>
+  <title>Gesture Arena｜AI 猜拳競技場</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
@@ -21,9 +21,9 @@
       height: 100%;
       height: 100dvh;
       overflow: hidden;
-      background: #050712;
+      background: #080b12;
       font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
-      color: white;
+      color: #f5f7ff;
       touch-action: none;
       user-select: none;
     }
@@ -44,9 +44,9 @@
       height: 100dvh;
       overflow: hidden;
       background:
-        radial-gradient(circle at 20% 10%, rgba(0, 255, 210, 0.22), transparent 32%),
-        radial-gradient(circle at 85% 72%, rgba(255, 70, 160, 0.22), transparent 36%),
-        linear-gradient(160deg, #050712 0%, #101428 52%, #070914 100%);
+        radial-gradient(circle at 18% 14%, rgba(255, 155, 35, 0.28), transparent 32%),
+        radial-gradient(circle at 82% 18%, rgba(0, 209, 255, 0.22), transparent 36%),
+        linear-gradient(180deg, #101624 0%, #080b12 54%, #15100a 100%);
     }
 
     #game-container::before {
@@ -58,8 +58,8 @@
       background-image:
         linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
-      background-size: 36px 36px;
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent 85%);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 72%);
     }
 
     #game-canvas {
@@ -68,7 +68,7 @@
       width: 100%;
       height: 100%;
       display: block;
-      background: #050712;
+      background: #05070d;
       z-index: 1;
     }
 
@@ -78,75 +78,78 @@
       pointer-events: none;
       z-index: 4;
       background:
-        linear-gradient(180deg, rgba(3, 6, 18, 0.88) 0%, rgba(3, 6, 18, 0.1) 26%, transparent 52%, rgba(3, 6, 18, 0.68) 100%);
+        linear-gradient(180deg, rgba(8,11,18,0.82) 0%, transparent 28%, transparent 66%, rgba(8,11,18,0.82) 100%),
+        radial-gradient(circle at center, transparent 42%, rgba(0,0,0,0.32) 100%);
     }
 
     #top-bar {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 0) + 14px);
-      left: 14px;
-      right: 14px;
-      height: 76px;
+      top: calc(env(safe-area-inset-top, 0px) + 14px);
+      left: 16px;
+      right: 16px;
+      height: 72px;
       z-index: 20;
       display: grid;
       grid-template-columns: 1fr auto;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      border: 1px solid rgba(0, 255, 220, 0.28);
-      border-radius: 22px;
-      background: rgba(6, 10, 26, 0.72);
-      backdrop-filter: blur(12px);
-      box-shadow:
-        0 0 28px rgba(0, 255, 220, 0.12),
-        inset 0 0 24px rgba(255, 255, 255, 0.035);
+      padding: 0 16px;
+      border: 1px solid rgba(255, 199, 90, 0.28);
+      border-radius: 24px;
+      background: rgba(12, 16, 26, 0.7);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.28);
+    }
+
+    #brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+
+    #brand small {
+      color: #ffbd59;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 2px;
     }
 
     #top-title {
-      font-size: 15px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      color: #dffcff;
-    }
-
-    #top-subtitle {
       margin-top: 4px;
-      font-size: 11px;
-      font-weight: 800;
-      color: rgba(180, 250, 255, 0.6);
-      letter-spacing: 1px;
+      font-size: 19px;
+      font-weight: 950;
+      letter-spacing: 0.5px;
     }
 
     #corner-score {
-      min-width: 76px;
-      padding: 9px 12px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(0,255,180,0.18), rgba(255,255,255,0.06));
-      color: #62ffd3;
-      font-size: 17px;
-      font-weight: 900;
-      text-align: center;
-      border: 1px solid rgba(98, 255, 211, 0.32);
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,189,89,0.25), rgba(255,189,89,0.08));
+      color: #ffcf7a;
+      font-size: 18px;
+      font-weight: 950;
+      border: 1px solid rgba(255, 199, 90, 0.3);
+      white-space: nowrap;
     }
 
     #gesture-label {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 0) + 108px);
+      top: calc(env(safe-area-inset-top, 0px) + 104px);
       left: 50%;
       transform: translateX(-50%);
       z-index: 32;
       padding: 9px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(7, 10, 24, 0.68);
-      backdrop-filter: blur(10px);
-      font-size: clamp(15px, 4vw, 22px);
+      border: 1px solid rgba(0, 209, 255, 0.35);
+      background: rgba(4, 12, 20, 0.7);
+      color: #8eeeff;
+      font-size: clamp(15px, 4.2vw, 22px);
       font-weight: 900;
-      color: #f7fbff;
+      text-shadow: 0 0 16px rgba(0, 209, 255, 0.38);
       opacity: 0;
       transition: opacity 0.2s ease;
       white-space: nowrap;
-      box-shadow: 0 0 18px rgba(0, 255, 220, 0.12);
+      backdrop-filter: blur(10px);
     }
 
     #gesture-label.show {
@@ -158,80 +161,78 @@
       inset: 0;
       z-index: 25;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: center;
+      align-items: center;
       pointer-events: none;
-      padding: 126px 18px 130px;
+      padding: 128px 18px 146px;
       text-align: center;
     }
 
-    #command-panel {
-      width: min(92vw, 480px);
-      padding: 22px 18px;
-      border-radius: 26px;
-      background: rgba(5, 8, 22, 0.5);
-      border: 1px solid rgba(255,255,255,0.1);
-      backdrop-filter: blur(8px);
-      box-shadow:
-        0 24px 80px rgba(0,0,0,0.42),
-        inset 0 0 22px rgba(255,255,255,0.035);
+    #status-card {
+      width: min(92vw, 470px);
+      padding: 24px 18px;
+      border-radius: 30px;
+      background: rgba(8, 11, 18, 0.34);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(4px);
     }
 
     #status-display {
-      font-size: clamp(32px, 10vw, 72px);
-      font-weight: 1000;
-      line-height: 1.08;
-      letter-spacing: 2px;
-      color: #ffffff;
-      text-shadow:
-        0 0 18px rgba(0, 255, 220, 0.32),
-        0 6px 26px rgba(0, 0, 0, 0.9);
+      font-size: clamp(34px, 10vw, 76px);
+      font-weight: 950;
+      line-height: 1.12;
+      letter-spacing: 1px;
       white-space: pre-line;
+      text-shadow:
+        0 4px 18px rgba(0, 0, 0, 0.85),
+        0 0 24px rgba(255, 189, 89, 0.26);
     }
 
     #sub-status {
       margin-top: 14px;
       min-height: 30px;
       font-size: clamp(14px, 3.8vw, 20px);
-      font-weight: 800;
-      color: rgba(220, 245, 255, 0.72);
-      line-height: 1.5;
+      font-weight: 850;
+      color: rgba(245, 247, 255, 0.78);
+      line-height: 1.55;
+      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9);
     }
 
     #bottom-hint {
       position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: calc(env(safe-area-inset-bottom, 0) + 14px);
+      left: 16px;
+      right: 16px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
       z-index: 35;
-      min-height: 76px;
+      min-height: 78px;
       padding: 14px 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
-      line-height: 1.6;
-      font-size: clamp(13px, 3.6vw, 17px);
-      font-weight: 900;
-      color: rgba(235, 250, 255, 0.72);
-      background: rgba(5, 8, 22, 0.72);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 22px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 0 24px rgba(255, 70, 160, 0.12);
+      line-height: 1.55;
+      font-size: clamp(13px, 3.7vw, 17px);
+      font-weight: 850;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(12, 16, 26, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.28);
     }
 
     #round-flash {
       position: absolute;
       inset: 0;
       z-index: 28;
-      background: rgba(255, 255, 255, 0);
+      background: rgba(255, 189, 89, 0);
       pointer-events: none;
       transition: background 0.16s ease;
     }
 
     #round-flash.active {
-      background: rgba(0, 255, 220, 0.18);
+      background: rgba(255, 189, 89, 0.24);
     }
 
     #result-modal {
@@ -242,49 +243,49 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: rgba(2, 4, 12, 0.58);
-      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(8px);
     }
 
     #result-card {
       width: min(92vw, 520px);
-      padding: 28px 22px;
-      border-radius: 30px;
+      padding: 28px 22px 24px;
+      border-radius: 32px;
       background:
-        linear-gradient(145deg, rgba(0,255,220,0.12), transparent 32%),
-        rgba(8, 12, 30, 0.88);
-      border: 1px solid rgba(0, 255, 220, 0.22);
+        linear-gradient(180deg, rgba(26, 31, 44, 0.92), rgba(13, 16, 24, 0.9));
+      border: 1px solid rgba(255, 189, 89, 0.24);
       box-shadow:
-        0 0 54px rgba(0, 0, 0, 0.55),
-        0 0 28px rgba(0, 255, 220, 0.12);
+        0 28px 70px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255,255,255,0.08);
       text-align: center;
     }
 
     #result-title {
-      margin: 0 0 14px;
-      font-size: clamp(32px, 8.5vw, 54px);
-      font-weight: 1000;
-      letter-spacing: 2px;
-      color: #ffffff;
+      margin: 0 0 10px;
+      font-size: clamp(30px, 8vw, 54px);
+      font-weight: 950;
+      letter-spacing: 1px;
+      color: #ffcf7a;
+      text-shadow: 0 0 24px rgba(255, 189, 89, 0.25);
     }
 
     #result-score {
       width: 100%;
       margin: 0 auto 20px;
-      padding: 14px;
+      padding: 13px 14px;
       border-radius: 18px;
-      font-size: clamp(17px, 4.5vw, 24px);
-      font-weight: 900;
-      color: rgba(235, 250, 255, 0.9);
+      font-size: clamp(17px, 4.6vw, 24px);
+      font-weight: 950;
+      color: rgba(255, 255, 255, 0.9);
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
     #result-hint {
       margin-bottom: 18px;
-      font-size: clamp(15px, 4vw, 20px);
-      color: rgba(220, 245, 255, 0.68);
-      font-weight: 900;
+      font-size: clamp(14px, 4vw, 19px);
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 850;
     }
 
     .button-row {
@@ -294,24 +295,23 @@
     }
 
     .game-btn {
-      height: 70px;
+      height: 72px;
       border: none;
-      border-radius: 20px;
-      color: white;
+      border-radius: 22px;
       font-size: clamp(18px, 5vw, 28px);
-      font-weight: 1000;
+      font-weight: 950;
       cursor: pointer;
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
     }
 
     #end-btn {
-      background: linear-gradient(135deg, #ff3f7d, #822fff);
-      box-shadow: 0 0 24px rgba(255, 63, 125, 0.22);
+      color: #fff;
+      background: linear-gradient(180deg, #ff5a3d, #ba2317);
     }
 
     #continue-btn {
-      color: #03110e;
-      background: linear-gradient(135deg, #60ffd5, #c4fff0);
-      box-shadow: 0 0 24px rgba(0, 255, 220, 0.25);
+      color: #061017;
+      background: linear-gradient(180deg, #8eeeff, #40c7e8);
     }
 
     #camera-error {
@@ -322,7 +322,7 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: radial-gradient(circle at center, #191653, #050510 72%);
+      background: radial-gradient(circle at center, #1b2638, #080b12 72%);
       text-align: center;
     }
 
@@ -366,35 +366,35 @@
     <div id="round-flash"></div>
 
     <header id="top-bar">
-      <div>
-        <div id="top-title">GESTURE DUEL TERMINAL</div>
-        <div id="top-subtitle">AI RPS SYSTEM / LIVE HAND TRACKING</div>
+      <div id="brand">
+        <small>GESTURE ARENA</small>
+        <div id="top-title">AI 猜拳競技場</div>
       </div>
-      <div id="corner-score">WIN 0</div>
+      <div id="corner-score">勝場 0</div>
     </header>
 
-    <div id="gesture-label">SCAN：☝️ START</div>
+    <div id="gesture-label">掃描：☝️ 開始</div>
 
     <section id="main-ui">
-      <div id="command-panel">
-        <div id="status-display">CAMERA<br>BOOTING</div>
-        <div id="sub-status">等待攝影機權限與影像串流</div>
+      <div id="status-card">
+        <div id="status-display">系統啟動中</div>
+        <div id="sub-status">請允許攝影機權限</div>
       </div>
     </section>
 
     <div id="bottom-hint">
-      ☝️ 啟動對戰　👌 下一回合　🖖 結束任務　🤘 重啟終端
+      指令：☝️ 開局　👌 下一局　🖖 結束　🤘 重置競技場
     </div>
 
     <section id="result-modal">
       <div id="result-card">
-        <h1 id="result-title">ROUND COMPLETE</h1>
-        <div id="result-score">WIN 0　LOSE 0　DRAW 0</div>
-        <div id="result-hint">👌 下一回合　🖖 結束任務</div>
+        <h1 id="result-title">回合結算</h1>
+        <div id="result-score">勝 0　敗 0　平 0</div>
+        <div id="result-hint">👌 下一局　🖖 結束</div>
 
         <div class="button-row">
-          <button id="end-btn" class="game-btn">🖖 END</button>
-          <button id="continue-btn" class="game-btn">👌 NEXT</button>
+          <button id="end-btn" class="game-btn">🖖 結束</button>
+          <button id="continue-btn" class="game-btn">👌 下一局</button>
         </div>
       </div>
     </section>
@@ -453,13 +453,13 @@
     };
 
     const gestureText = {
-      ROCK: "✊ ROCK",
-      PAPER: "🖐️ PAPER",
-      SCISSORS: "✌️ SCISSORS",
-      START: "☝️ START",
-      CONTINUE: "👌 NEXT",
-      END: "🖖 END",
-      RESTART: "🤘 REBOOT",
+      ROCK: "✊ 石頭",
+      PAPER: "🖐️ 布",
+      SCISSORS: "✌️ 剪刀",
+      START: "☝️ 開局",
+      CONTINUE: "👌 下一局",
+      END: "🖖 結束",
+      RESTART: "🤘 重置",
       UNKNOWN: ""
     };
 
@@ -607,8 +607,8 @@
     }
 
     function updateScore() {
-      cornerScore.textContent = `WIN ${wins}`;
-      resultScore.textContent = `WIN ${wins}　LOSE ${losses}　DRAW ${draws}`;
+      cornerScore.textContent = `勝場 ${wins}`;
+      resultScore.textContent = `勝 ${wins}　敗 ${losses}　平 ${draws}`;
     }
 
     function flash() {
@@ -626,7 +626,7 @@
         gesture === GESTURE.END ||
         gesture === GESTURE.RESTART
       ) {
-        gestureLabel.textContent = `SCAN：${gestureText[gesture]}`;
+        gestureLabel.textContent = `掃描：${gestureText[gesture]}`;
         gestureLabel.classList.add("show");
       } else {
         gestureLabel.classList.remove("show");
@@ -658,20 +658,20 @@
 
       if (playerChoice === computerChoice) {
         draws++;
-        resultText = "DRAW";
-        resultIcon = "🤝";
+        resultText = "同步";
+        resultIcon = "＝";
       } else if (
         (playerChoice === GESTURE.ROCK && computerChoice === GESTURE.SCISSORS) ||
         (playerChoice === GESTURE.PAPER && computerChoice === GESTURE.ROCK) ||
         (playerChoice === GESTURE.SCISSORS && computerChoice === GESTURE.PAPER)
       ) {
         wins++;
-        resultText = "PLAYER WIN";
-        resultIcon = "✅";
+        resultText = "制勝";
+        resultIcon = "WIN";
       } else {
         losses++;
-        resultText = "AI WIN";
-        resultIcon = "❌";
+        resultText = "失守";
+        resultIcon = "LOSE";
       }
 
       updateScore();
@@ -683,11 +683,11 @@
       menuHoldFrames = 0;
       restartHoldFrames = 0;
 
-      gestureLabel.textContent = `PLAYER：${gestureText[playerChoice]}`;
+      gestureLabel.textContent = `你的招式：${gestureText[playerChoice]}`;
       gestureLabel.classList.add("show");
 
-      statusDisplay.innerHTML = `${resultIcon}<br>${resultText}`;
-      subStatus.innerHTML = `AI OUTPUT：${gestureText[computerChoice]}`;
+      statusDisplay.innerHTML = `${resultIcon}\n${resultText}`;
+      subStatus.innerHTML = `AI 招式：${gestureText[computerChoice]}`;
 
       setTimeout(showContinueModal, 1300);
     }
@@ -695,25 +695,24 @@
     function showContinueModal() {
       gameState = "WAIT_CONTINUE";
       resultModal.style.display = "flex";
-      resultTitle.textContent = "ROUND COMPLETE";
-      resultHint.textContent = "👌 下一回合　🖖 結束任務";
-      bottomHint.textContent = "👌 下一回合　🖖 結束任務";
+      resultTitle.textContent = "回合結算";
+      resultHint.textContent = "👌 下一局　🖖 結束";
+      bottomHint.textContent = "指令：👌 下一局　🖖 結束";
       updateScore();
     }
 
     function continueGame() {
       resultModal.style.display = "none";
       gestureLabel.classList.remove("show");
-
       gestureSamples = [];
       startHoldFrames = 0;
       menuHoldFrames = 0;
       restartHoldFrames = 0;
       countdownRunning = false;
 
-      statusDisplay.textContent = "NEXT ROUND";
-      subStatus.textContent = "請固定 ✊ ROCK、🖐️ PAPER 或 ✌️ SCISSORS";
-      bottomHint.textContent = "倒數結束時鎖定手勢";
+      statusDisplay.textContent = "下一局";
+      subStatus.textContent = "請鎖定你的招式：✊／🖐️／✌️";
+      bottomHint.textContent = "倒數結束時，以最穩定的手勢作為出招";
 
       setTimeout(() => {
         startCountdown();
@@ -730,9 +729,9 @@
       menuHoldFrames = 0;
       restartHoldFrames = 0;
 
-      statusDisplay.textContent = "MISSION END";
-      subStatus.textContent = `FINAL：WIN ${wins} / LOSE ${losses} / DRAW ${draws}`;
-      bottomHint.textContent = "🤘 重啟終端";
+      statusDisplay.textContent = "競技場關閉";
+      subStatus.textContent = `最終紀錄：勝 ${wins}｜敗 ${losses}｜平 ${draws}`;
+      bottomHint.textContent = "指令：🤘 重置競技場，直接重新開局";
     }
 
     function restartGame() {
@@ -751,9 +750,9 @@
       restartHoldFrames = 0;
       countdownRunning = false;
 
-      statusDisplay.textContent = "REBOOT";
-      subStatus.textContent = "請固定 ✊ ROCK、🖐️ PAPER 或 ✌️ SCISSORS";
-      bottomHint.textContent = "倒數結束時鎖定手勢";
+      statusDisplay.textContent = "重置完成";
+      subStatus.textContent = "請鎖定你的招式：✊／🖐️／✌️";
+      bottomHint.textContent = "倒數結束時，以最穩定的手勢作為出招";
 
       setTimeout(() => {
         startCountdown();
@@ -762,10 +761,10 @@
 
     function startThinkingText() {
       const texts = [
-        "AI 正在比對手勢資料",
-        "終端正在鎖定輸入",
-        "對戰模型計算中",
-        "手勢樣本收集中"
+        "AI 正在讀取節點",
+        "系統分析手勢中",
+        "競技場同步中",
+        "回合資料鎖定中"
       ];
 
       let index = 0;
@@ -792,18 +791,18 @@
       resultModal.style.display = "none";
       gestureLabel.classList.remove("show");
 
-      bottomHint.textContent = "倒數結束時鎖定 ✊ / 🖐️ / ✌️";
-      subStatus.textContent = "手勢輸入準備中";
+      bottomHint.textContent = "保持 ✊ 石頭、🖐️ 布或 ✌️ 剪刀，系統會取樣判定";
+      subStatus.textContent = "回合準備";
       startThinkingText();
 
-      const sequence = ["03", "02", "01"];
+      const sequence = ["3", "2", "1"];
 
       for (const number of sequence) {
         statusDisplay.textContent = number;
         await wait(800);
       }
 
-      statusDisplay.textContent = "LOCK";
+      statusDisplay.textContent = "出招";
       await wait(350);
 
       const finalGesture = getGestureFromSamples();
@@ -811,7 +810,289 @@
       if (finalGesture === GESTURE.UNKNOWN) {
         gameState = "IDLE";
         countdownRunning = false;
-        statusDisplay.textContent = "NO INPUT";
-        subStatus.textContent = "請重新比 ☝️ 啟動對戰";
-        bottomHint.textContent = "☝️ 啟動對戰　👌 下一回合　🖖 結束任務　🤘 重啟終端";
+        statusDisplay.textContent = "未鎖定";
+        subStatus.textContent = "請重新比 ☝️ 開局";
+        bottomHint.textContent = "指令：☝️ 開局　👌 下一局　🖖 結束　🤘 重置競技場";
         startHoldFrames = 0;
+        return;
+      }
+
+      playRound(finalGesture);
+    }
+
+    function drawVideoCover(image) {
+      const cw = canvasElement.clientWidth;
+      const ch = canvasElement.clientHeight;
+
+      if (!image) return;
+
+      const iw = image.videoWidth || image.width || 640;
+      const ih = image.videoHeight || image.height || 480;
+
+      if (!iw || !ih) return;
+
+      const imageRatio = iw / ih;
+      const canvasRatio = cw / ch;
+
+      if (imageRatio > canvasRatio) {
+        drawRect.height = ch;
+        drawRect.width = drawRect.height * imageRatio;
+        drawRect.x = (cw - drawRect.width) / 2;
+        drawRect.y = 0;
+      } else {
+        drawRect.width = cw;
+        drawRect.height = drawRect.width / imageRatio;
+        drawRect.x = 0;
+        drawRect.y = (ch - drawRect.height) / 2;
+      }
+
+      canvasCtx.save();
+      canvasCtx.translate(cw, 0);
+      canvasCtx.scale(-1, 1);
+      canvasCtx.drawImage(image, drawRect.x, drawRect.y, drawRect.width, drawRect.height);
+      canvasCtx.restore();
+    }
+
+    function mapPoint(point) {
+      return {
+        x: drawRect.x + (1 - point.x) * drawRect.width,
+        y: drawRect.y + point.y * drawRect.height
+      };
+    }
+
+    function drawPoint(point, radius, color) {
+      const p = mapPoint(point);
+
+      canvasCtx.beginPath();
+      canvasCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      canvasCtx.fillStyle = color;
+      canvasCtx.shadowColor = color;
+      canvasCtx.shadowBlur = 10;
+      canvasCtx.fill();
+      canvasCtx.shadowBlur = 0;
+    }
+
+    function drawLine(a, b, color, width) {
+      const p1 = mapPoint(a);
+      const p2 = mapPoint(b);
+
+      canvasCtx.beginPath();
+      canvasCtx.moveTo(p1.x, p1.y);
+      canvasCtx.lineTo(p2.x, p2.y);
+      canvasCtx.strokeStyle = color;
+      canvasCtx.lineWidth = width;
+      canvasCtx.lineCap = "round";
+      canvasCtx.lineJoin = "round";
+      canvasCtx.shadowColor = color;
+      canvasCtx.shadowBlur = 12;
+      canvasCtx.stroke();
+      canvasCtx.shadowBlur = 0;
+    }
+
+    function drawHandSkeleton(landmarks) {
+      for (const [start, end] of HAND_CONNECTIONS_LOCAL) {
+        drawLine(landmarks[start], landmarks[end], "#8eeeff", 4);
+      }
+
+      for (let i = 0; i < landmarks.length; i++) {
+        if (i === 0) {
+          drawPoint(landmarks[i], 8, "#ffbd59");
+        } else if ([4, 8, 12, 16, 20].includes(i)) {
+          drawPoint(landmarks[i], 5, "#8eeeff");
+        } else {
+          drawPoint(landmarks[i], 4, "#ffffff");
+        }
+      }
+    }
+
+    function handleGameFlow(gesture) {
+      setGestureLabel(gesture);
+
+      if (gameState === "IDLE") {
+        if (gesture === GESTURE.START) {
+          startHoldFrames += 1;
+
+          if (startHoldFrames > 10) {
+            startCountdown();
+          }
+        } else {
+          startHoldFrames = 0;
+        }
+      }
+
+      if (gameState === "COUNTDOWN") {
+        gestureSamples.push(gesture);
+
+        if (gestureSamples.length > 20) {
+          gestureSamples.shift();
+        }
+      }
+
+      if (gameState === "WAIT_CONTINUE") {
+        if (gesture === GESTURE.CONTINUE || gesture === GESTURE.END) {
+          menuHoldFrames += 1;
+        } else {
+          menuHoldFrames = 0;
+        }
+
+        if (menuHoldFrames > 8) {
+          if (gesture === GESTURE.CONTINUE) {
+            continueGame();
+          }
+
+          if (gesture === GESTURE.END) {
+            endGame();
+          }
+
+          menuHoldFrames = 0;
+        }
+      }
+
+      if (gameState === "ENDED") {
+        if (gesture === GESTURE.RESTART) {
+          restartHoldFrames += 1;
+        } else {
+          restartHoldFrames = 0;
+        }
+
+        if (restartHoldFrames > 8) {
+          restartGame();
+        }
+      }
+    }
+
+    function drawOnlyCameraFrame() {
+      if (!streamReady) return;
+
+      canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
+      drawVideoCover(videoElement);
+    }
+
+    function onResults(results) {
+      canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
+
+      drawVideoCover(results.image || videoElement);
+
+      let detectedGesture = GESTURE.UNKNOWN;
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+
+        drawHandSkeleton(landmarks);
+        detectedGesture = detectGesture(landmarks);
+      } else {
+        gestureLabel.classList.remove("show");
+
+        if (gameState === "IDLE") {
+          startHoldFrames = 0;
+          statusDisplay.textContent = "等待開局";
+          subStatus.textContent = "比出 ☝️ 後進入倒數";
+        }
+      }
+
+      updateStableGesture(detectedGesture);
+      handleGameFlow(stableGesture);
+    }
+
+    async function processFrame() {
+      if (!streamReady) {
+        requestAnimationFrame(processFrame);
+        return;
+      }
+
+      if (!hands || processingFrame || videoElement.readyState < 2) {
+        drawOnlyCameraFrame();
+        requestAnimationFrame(processFrame);
+        return;
+      }
+
+      try {
+        processingFrame = true;
+        await hands.send({ image: videoElement });
+      } catch (error) {
+        console.error(error);
+        drawOnlyCameraFrame();
+      } finally {
+        processingFrame = false;
+      }
+
+      requestAnimationFrame(processFrame);
+    }
+
+    async function waitForVideoReady(video, timeout = 2500) {
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        return;
+      }
+
+      await Promise.race([
+        new Promise(resolve => {
+          video.onloadedmetadata = resolve;
+          video.onloadeddata = resolve;
+          video.oncanplay = resolve;
+        }),
+        new Promise(resolve => setTimeout(resolve, timeout))
+      ]);
+    }
+
+    async function startCamera() {
+      try {
+        resizeCanvas();
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("getUserMedia 不支援");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 720 },
+            height: { ideal: 960 }
+          },
+          audio: false
+        });
+
+        videoElement.srcObject = stream;
+        videoElement.setAttribute("playsinline", "true");
+        videoElement.setAttribute("muted", "true");
+        videoElement.setAttribute("autoplay", "true");
+        videoElement.muted = true;
+
+        await videoElement.play().catch(() => {});
+        await waitForVideoReady(videoElement);
+
+        streamReady = true;
+
+        gameState = "IDLE";
+        statusDisplay.textContent = "等待開局";
+        subStatus.textContent = "比出 ☝️ 後進入倒數";
+        bottomHint.textContent = "指令：☝️ 開局　👌 下一局　🖖 結束　🤘 重置競技場";
+
+        processFrame();
+
+        hands = new Hands({
+          locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.72,
+          minTrackingConfidence: 0.72
+        });
+
+        hands.onResults(onResults);
+      } catch (error) {
+        console.error(error);
+        gameState = "ERROR";
+        cameraError.style.display = "flex";
+      }
+    }
+
+    continueBtn.addEventListener("click", continueGame);
+    endBtn.addEventListener("click", endGame);
+
+    updateScore();
+    startCamera();
+  </script>
+</body>
+</html>
