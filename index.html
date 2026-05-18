@@ -1,349 +1,834 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 剪刀石頭布大賽</title>
-    <!-- 引入 MediaPipe 相關套件 -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            background-color: #1a1a1a;
-            font-family: 'Microsoft JhengHei', sans-serif;
-            color: white;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AI 即時手勢辨識猜拳</title>
 
-        /* 遊戲主視窗容器 */
-        #game-container {
-            position: relative;
-            width: 90vw;
-            max-width: 800px;
-            aspect-ratio: 4 / 3;
-            border: 4px solid #00ffcc;
-            border-radius: 20px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
-            z-index: 1;
-        }
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
-        #game-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            transform: scaleX(-1); /* 讓畫布鏡像，操作更直覺 */
-        }
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-        /* 隱藏原始影片，我們將其繪製到 Canvas */
-        #input-video {
-            display: none;
-        }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: #050510;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+      color: white;
+      touch-action: none;
+      user-select: none;
+    }
 
-        /* 遊戲資訊介面 */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            pointer-events: none;
-            padding: 40px 0;
-        }
+    #input-video {
+      display: none;
+    }
 
-        .score-board {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 20px;
-            border-radius: 15px;
-            font-size: 1.2rem;
-            text-align: center;
-            margin-top: 20px;
-        }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(85, 40, 190, 0.45), transparent 40%),
+        linear-gradient(180deg, #151345 0%, #070710 50%, #12123a 100%);
+    }
 
-        .instruction-box {
-            font-size: 1.5rem;
-            background: rgba(0, 255, 204, 0.2);
-            padding: 15px 30px;
-            border: 2px solid #00ffcc;
-            border-radius: 50px;
-            animation: pulse 2s infinite;
-        }
+    #game-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform: scaleX(-1);
+      background: #050510;
+    }
 
-        .status-text {
-            font-size: 3rem;
-            font-weight: bold;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 10px 20px;
-            border-radius: 10px;
-        }
+    #camera-mask {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(7, 7, 20, 0.95) 0%, rgba(7, 7, 20, 0.25) 18%, transparent 35%, transparent 70%, rgba(7, 7, 20, 0.65) 100%);
+      z-index: 4;
+    }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
+    #top-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 0);
+      left: 0;
+      width: 100%;
+      height: 88px;
+      z-index: 20;
+      background: linear-gradient(180deg, rgba(24, 22, 74, 0.96), rgba(16, 15, 48, 0.82));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+    }
 
-        /* 結算視窗 */
-        #summary-modal {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95);
-            padding: 30px;
-            border: 2px solid #00ffcc;
-            border-radius: 20px;
-            z-index: 100;
-            text-align: center;
-            display: none;
-            width: 80%;
-        }
+    #top-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      opacity: 0.95;
+    }
 
-        #summary-modal h2 { color: #00ffcc; margin: 0 0 15px 0; }
-        .modal-btn-hint { margin-top: 15px; color: #aaa; font-size: 0.9rem; }
+    #corner-score {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0) + 106px);
+      right: 14px;
+      z-index: 30;
+      min-width: 78px;
+      padding: 10px 14px;
+      border-radius: 14px 0 0 14px;
+      background: rgba(0, 0, 0, 0.88);
+      color: #00ff88;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 0 18px rgba(0, 255, 120, 0.22);
+      text-align: center;
+    }
 
-        @media (max-width: 600px) {
-            .status-text { font-size: 2rem; }
-            .instruction-box { font-size: 1.1rem; }
-        }
-    </style>
+    #main-ui {
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      padding: 100px 16px 130px;
+      text-align: center;
+    }
+
+    #gesture-label {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0) + 155px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 32;
+      font-size: clamp(24px, 7vw, 42px);
+      font-weight: 900;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+    }
+
+    #gesture-label.show {
+      opacity: 1;
+    }
+
+    #status-display {
+      font-size: clamp(34px, 11vw, 86px);
+      font-weight: 900;
+      line-height: 1.15;
+      text-shadow:
+        0 5px 24px rgba(0, 0, 0, 0.9),
+        0 0 20px rgba(255, 255, 255, 0.32);
+      letter-spacing: 2px;
+      white-space: pre-line;
+    }
+
+    #sub-status {
+      margin-top: 18px;
+      min-height: 30px;
+      font-size: clamp(15px, 4vw, 22px);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.78);
+      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9);
+    }
+
+    #bottom-hint {
+      position: absolute;
+      left: 0;
+      bottom: env(safe-area-inset-bottom, 0);
+      z-index: 35;
+      width: 100%;
+      min-height: 96px;
+      padding: 18px 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.65;
+      font-size: clamp(14px, 4vw, 18px);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.58);
+      background: linear-gradient(180deg, rgba(18, 17, 55, 0.62), rgba(23, 26, 72, 0.94));
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    #round-flash {
+      position: absolute;
+      inset: 0;
+      z-index: 28;
+      background: rgba(255, 255, 255, 0);
+      pointer-events: none;
+      transition: background 0.16s ease;
+    }
+
+    #round-flash.active {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    #result-modal {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(7px);
+    }
+
+    #result-card {
+      width: min(92vw, 520px);
+      padding: 32px 24px 28px;
+      border-radius: 28px;
+      background: rgba(15, 15, 18, 0.72);
+      box-shadow:
+        0 0 40px rgba(0, 0, 0, 0.55),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
+
+    #result-title {
+      margin: 0 0 14px;
+      font-size: clamp(38px, 10vw, 64px);
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+    }
+
+    #result-score {
+      width: 100%;
+      margin: 0 auto 26px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: clamp(18px, 4.8vw, 26px);
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.82);
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.08);
+    }
+
+    #result-hint {
+      margin-bottom: 18px;
+      font-size: clamp(15px, 4vw, 21px);
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 800;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .game-btn {
+      height: 78px;
+      border: none;
+      border-radius: 999px;
+      color: white;
+      font-size: clamp(20px, 5.5vw, 32px);
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 26px rgba(0, 0, 0, 0.35);
+    }
+
+    #end-btn {
+      background: linear-gradient(180deg, #ff2a15, #db1303);
+    }
+
+    #continue-btn {
+      color: #00d66e;
+      background: #fff;
+      box-shadow: 0 0 26px rgba(0, 255, 120, 0.32);
+    }
+
+    #camera-error {
+      position: absolute;
+      inset: 0;
+      z-index: 90;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(circle at center, #191653, #050510 72%);
+      text-align: center;
+    }
+
+    #camera-error-card {
+      max-width: 520px;
+      width: 100%;
+      padding: 30px 22px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    #camera-error-card h1 {
+      margin: 0 0 12px;
+      font-size: 30px;
+    }
+
+    #camera-error-card p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.7;
+      font-weight: 700;
+    }
+
+    @media (min-width: 768px) {
+      #game-container {
+        max-width: 520px;
+        margin: 0 auto;
+      }
+    }
+  </style>
 </head>
+
 <body>
+  <video id="input-video" playsinline muted></video>
 
-    <video id="input-video" playsinline></video>
+  <main id="game-container">
+    <canvas id="game-canvas"></canvas>
 
-    <div id="game-container">
-        <canvas id="game-canvas"></canvas>
+    <div id="camera-mask"></div>
+    <div id="round-flash"></div>
 
-        <div id="ui-layer">
-            <div class="score-board">
-                <div>玩家勝: <span id="win-count">0</span> | 電腦勝: <span id="loss-count">0</span></div>
-                <div style="font-size: 0.8em; margin-top: 5px;">平手: <span id="draw-count">0</span></div>
-            </div>
+    <header id="top-bar">
+      <div id="top-title">AI 即時手勢辨識猜拳</div>
+    </header>
 
-            <div id="status-display" class="status-text">載入中...</div>
+    <div id="corner-score">✅ 0勝</div>
 
-            <div id="instruction" class="instruction-box">
-                🖐️ 舉起手掌開始
-            </div>
-        </div>
+    <div id="gesture-label">你出：✌️ 剪刀</div>
 
-        <div id="summary-modal">
-            <h2>遊戲結算</h2>
-            <div id="summary-content" style="font-size: 1.2rem; line-height: 1.5;"></div>
-            <div class="modal-btn-hint">🖐️(布) 重新開始</div>
-        </div>
+    <section id="main-ui">
+      <div id="status-display">啟動攝影機中...</div>
+      <div id="sub-status">☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀</div>
+    </section>
+
+    <div id="bottom-hint">
+      ☝️ 開始　👌 繼續　🖖 結束
     </div>
 
-    <script>
-        const videoElement = document.getElementById('input-video');
-        const canvasElement = document.getElementById('game-canvas');
-        const canvasCtx = canvasElement.getContext('2d');
-        const winDisplay = document.getElementById('win-count');
-        const lossDisplay = document.getElementById('loss-count');
-        const drawDisplay = document.getElementById('draw-count');
-        const statusDisplay = document.getElementById('status-display');
-        const instructionDisplay = document.getElementById('instruction');
-        const summaryModal = document.getElementById('summary-modal');
-        const summaryContent = document.getElementById('summary-content');
+    <section id="result-modal">
+      <div id="result-card">
+        <h1 id="result-title">再玩一局？</h1>
+        <div id="result-score">✅ 0勝　❌ 0敗　🤝 0平</div>
+        <div id="result-hint">👌 繼續　🖖 結束</div>
 
-        let gameState = 'IDLE'; // IDLE, COUNTDOWN, RESULT, WAIT_CONTINUE, SUMMARY
-        let wins = 0, losses = 0, draws = 0;
-        let countdownValue = 3;
-        let lastGesture = "";
-        let gestureTimer = 0;
+        <div class="button-row">
+          <button id="end-btn" class="game-btn">🖖 結束</button>
+          <button id="continue-btn" class="game-btn">👌 繼續</button>
+        </div>
+      </div>
+    </section>
 
-        // 初始化畫布大小
-        function resize() {
-            canvasElement.width = canvasElement.offsetWidth;
-            canvasElement.height = canvasElement.offsetHeight;
+    <section id="camera-error">
+      <div id="camera-error-card">
+        <h1>攝影機啟動失敗</h1>
+        <p>
+          請確認瀏覽器已允許攝影機權限。<br />
+          若使用 GitHub Pages，網址必須是 HTTPS。
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const videoElement = document.getElementById("input-video");
+    const canvasElement = document.getElementById("game-canvas");
+    const canvasCtx = canvasElement.getContext("2d");
+
+    const statusDisplay = document.getElementById("status-display");
+    const subStatus = document.getElementById("sub-status");
+    const bottomHint = document.getElementById("bottom-hint");
+    const cornerScore = document.getElementById("corner-score");
+    const gestureLabel = document.getElementById("gesture-label");
+
+    const resultModal = document.getElementById("result-modal");
+    const resultTitle = document.getElementById("result-title");
+    const resultScore = document.getElementById("result-score");
+    const resultHint = document.getElementById("result-hint");
+
+    const endBtn = document.getElementById("end-btn");
+    const continueBtn = document.getElementById("continue-btn");
+    const roundFlash = document.getElementById("round-flash");
+    const cameraError = document.getElementById("camera-error");
+
+    const GESTURE = {
+      ROCK: "ROCK",
+      PAPER: "PAPER",
+      SCISSORS: "SCISSORS",
+      START: "START",
+      CONTINUE: "CONTINUE",
+      END: "END",
+      UNKNOWN: "UNKNOWN"
+    };
+
+    const gestureText = {
+      ROCK: "✊ 石頭",
+      PAPER: "🖐️ 布",
+      SCISSORS: "✌️ 剪刀",
+      START: "☝️ 開始",
+      CONTINUE: "👌 繼續",
+      END: "🖖 結束",
+      UNKNOWN: ""
+    };
+
+    let gameState = "LOADING";
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+
+    let latestGesture = GESTURE.UNKNOWN;
+    let stableGesture = GESTURE.UNKNOWN;
+    let stableCount = 0;
+    let startHoldFrames = 0;
+
+    let countdownRunning = false;
+    let gestureSamples = [];
+    let thinkingTimer = null;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = canvasElement.clientWidth;
+      const height = canvasElement.clientHeight;
+
+      canvasElement.width = Math.floor(width * dpr);
+      canvasElement.height = Math.floor(height * dpr);
+      canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function fingerIsExtended(landmarks, tip, pip, mcp) {
+      const tipToWrist = distance(landmarks[tip], landmarks[0]);
+      const pipToWrist = distance(landmarks[pip], landmarks[0]);
+      const mcpToWrist = distance(landmarks[mcp], landmarks[0]);
+
+      const verticalExtended = landmarks[tip].y < landmarks[pip].y;
+      const distanceExtended = tipToWrist > pipToWrist && pipToWrist > mcpToWrist * 0.82;
+
+      return verticalExtended || distanceExtended;
+    }
+
+    function isOkGesture(landmarks) {
+      const thumbIndexClose = distance(landmarks[4], landmarks[8]) < 0.065;
+      const middleUp = fingerIsExtended(landmarks, 12, 10, 9);
+      const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
+      const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
+
+      return thumbIndexClose && middleUp && ringUp && pinkyUp;
+    }
+
+    function detectGesture(landmarks) {
+      if (!landmarks || landmarks.length < 21) return GESTURE.UNKNOWN;
+
+      const indexUp = fingerIsExtended(landmarks, 8, 6, 5);
+      const middleUp = fingerIsExtended(landmarks, 12, 10, 9);
+      const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
+      const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
+
+      if (isOkGesture(landmarks)) {
+        return GESTURE.CONTINUE;
+      }
+
+      if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        return GESTURE.START;
+      }
+
+      if (indexUp && middleUp && !ringUp && pinkyUp) {
+        return GESTURE.END;
+      }
+
+      const extendedCount = [indexUp, middleUp, ringUp, pinkyUp].filter(Boolean).length;
+
+      if (extendedCount >= 4) return GESTURE.PAPER;
+      if (indexUp && middleUp && !ringUp && !pinkyUp) return GESTURE.SCISSORS;
+      if (extendedCount === 0) return GESTURE.ROCK;
+
+      return GESTURE.UNKNOWN;
+    }
+
+    function updateStableGesture(gesture) {
+      if (gesture === latestGesture) {
+        stableCount += 1;
+      } else {
+        latestGesture = gesture;
+        stableCount = 1;
+      }
+
+      if (stableCount >= 4) {
+        stableGesture = gesture;
+      }
+    }
+
+    function getComputerChoice() {
+      const choices = [GESTURE.ROCK, GESTURE.PAPER, GESTURE.SCISSORS];
+      return choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    function updateScore() {
+      cornerScore.textContent = `✅ ${wins}勝`;
+      resultScore.textContent = `✅ ${wins}勝　❌ ${losses}敗　🤝 ${draws}平`;
+    }
+
+    function flash() {
+      roundFlash.classList.add("active");
+      setTimeout(() => roundFlash.classList.remove("active"), 140);
+    }
+
+    function setGestureLabel(gesture) {
+      if (
+        gesture === GESTURE.ROCK ||
+        gesture === GESTURE.PAPER ||
+        gesture === GESTURE.SCISSORS ||
+        gesture === GESTURE.START ||
+        gesture === GESTURE.CONTINUE ||
+        gesture === GESTURE.END
+      ) {
+        gestureLabel.textContent = `辨識：${gestureText[gesture]}`;
+        gestureLabel.classList.add("show");
+      } else {
+        gestureLabel.classList.remove("show");
+      }
+    }
+
+    function getGestureFromSamples() {
+      const count = {};
+
+      for (const gesture of gestureSamples) {
+        if (
+          gesture === GESTURE.ROCK ||
+          gesture === GESTURE.PAPER ||
+          gesture === GESTURE.SCISSORS
+        ) {
+          count[gesture] = (count[gesture] || 0) + 1;
         }
-        window.addEventListener('resize', resize);
-        resize();
+      }
 
-        // 判斷手勢邏輯
-        function detectGesture(landmarks) {
-            const isFingerUp = (tipIdx, pipIdx) => landmarks[tipIdx].y < landmarks[pipIdx].y;
-            
-            const indexUp = isFingerUp(8, 6);
-            const middleUp = isFingerUp(12, 10);
-            const ringUp = isFingerUp(16, 14);
-            const pinkyUp = isFingerUp(20, 18);
-            
-            // 判定大拇指位置 (用於結束遊戲)
-            const thumbUp = landmarks[4].y < landmarks[5].y;
+      const sorted = Object.entries(count).sort((a, b) => b[1] - a[1]);
+      return sorted.length ? sorted[0][0] : GESTURE.UNKNOWN;
+    }
 
-            if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) return "THUMB_UP";
-            if (indexUp && middleUp && ringUp && pinkyUp) return "PAPER";
-            if (indexUp && middleUp && !ringUp && !pinkyUp) return "SCISSORS";
-            if (!indexUp && !middleUp && !ringUp && !pinkyUp) return "ROCK";
-            return "UNKNOWN";
+    function playRound(playerChoice) {
+      const computerChoice = getComputerChoice();
+
+      let resultText = "";
+      let resultIcon = "";
+
+      if (playerChoice === computerChoice) {
+        draws++;
+        resultText = "平手";
+        resultIcon = "🤝";
+      } else if (
+        (playerChoice === GESTURE.ROCK && computerChoice === GESTURE.SCISSORS) ||
+        (playerChoice === GESTURE.PAPER && computerChoice === GESTURE.ROCK) ||
+        (playerChoice === GESTURE.SCISSORS && computerChoice === GESTURE.PAPER)
+      ) {
+        wins++;
+        resultText = "你贏了";
+        resultIcon = "✅";
+      } else {
+        losses++;
+        resultText = "你輸了";
+        resultIcon = "❌";
+      }
+
+      updateScore();
+      flash();
+
+      gameState = "RESULT";
+      countdownRunning = false;
+
+      gestureLabel.textContent = `你出：${gestureText[playerChoice]}`;
+      gestureLabel.classList.add("show");
+
+      statusDisplay.innerHTML = `${resultIcon} ${resultText}`;
+      subStatus.innerHTML = `電腦出：${gestureText[computerChoice]}`;
+
+      setTimeout(showContinueModal, 1300);
+    }
+
+    function showContinueModal() {
+      gameState = "WAIT_CONTINUE";
+      resultModal.style.display = "flex";
+      resultTitle.textContent = "再玩一局？";
+      resultHint.textContent = "👌 繼續　🖖 結束";
+      bottomHint.textContent = "👌 繼續　🖖 結束";
+      updateScore();
+    }
+
+    function continueGame() {
+      resultModal.style.display = "none";
+      gestureLabel.classList.remove("show");
+      gestureSamples = [];
+      startHoldFrames = 0;
+      gameState = "IDLE";
+      countdownRunning = false;
+      statusDisplay.textContent = "☝️ 請比開始手勢";
+      subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
+      bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
+    }
+
+    function endGame() {
+      resultModal.style.display = "none";
+      gestureLabel.classList.remove("show");
+      gameState = "ENDED";
+      countdownRunning = false;
+      statusDisplay.textContent = "遊戲結束";
+      subStatus.textContent = `最終成績：✅ ${wins}勝　❌ ${losses}敗　🤝 ${draws}平`;
+      bottomHint.textContent = "重新整理頁面即可重新開始";
+    }
+
+    function startThinkingText() {
+      const texts = [
+        "電腦正在思考",
+        "AI 正在觀察",
+        "系統正在判斷",
+        "正在讀取手勢"
+      ];
+
+      let index = 0;
+      clearInterval(thinkingTimer);
+
+      thinkingTimer = setInterval(() => {
+        if (gameState !== "COUNTDOWN") {
+          clearInterval(thinkingTimer);
+          return;
         }
 
-        function getComputerChoice() {
-            const choices = ["ROCK", "PAPER", "SCISSORS"];
-            return choices[Math.floor(Math.random() * choices.length)];
+        subStatus.textContent = texts[index % texts.length];
+        index++;
+      }, 420);
+    }
+
+    async function startCountdown() {
+      if (countdownRunning) return;
+
+      countdownRunning = true;
+      gameState = "COUNTDOWN";
+      gestureSamples = [];
+
+      resultModal.style.display = "none";
+      gestureLabel.classList.remove("show");
+
+      bottomHint.textContent = "倒數結束時請固定 ✊ 石頭、🖐️ 布或 ✌️ 剪刀";
+      subStatus.textContent = "準備出拳";
+      startThinkingText();
+
+      const sequence = ["3", "2", "1"];
+
+      for (const number of sequence) {
+        statusDisplay.textContent = number;
+        await wait(800);
+      }
+
+      statusDisplay.textContent = "出拳";
+      await wait(350);
+
+      const finalGesture = getGestureFromSamples();
+
+      if (finalGesture === GESTURE.UNKNOWN) {
+        gameState = "IDLE";
+        countdownRunning = false;
+        statusDisplay.textContent = "沒有辨識到";
+        subStatus.textContent = "請重新比 ☝️ 開始";
+        bottomHint.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
+        startHoldFrames = 0;
+        return;
+      }
+
+      playRound(finalGesture);
+    }
+
+    function drawVideoCover(image) {
+      const cw = canvasElement.clientWidth;
+      const ch = canvasElement.clientHeight;
+
+      const iw = image.videoWidth || 640;
+      const ih = image.videoHeight || 480;
+
+      const imageRatio = iw / ih;
+      const canvasRatio = cw / ch;
+
+      let drawWidth;
+      let drawHeight;
+      let x;
+      let y;
+
+      if (imageRatio > canvasRatio) {
+        drawHeight = ch;
+        drawWidth = drawHeight * imageRatio;
+        x = (cw - drawWidth) / 2;
+        y = 0;
+      } else {
+        drawWidth = cw;
+        drawHeight = drawWidth / imageRatio;
+        x = 0;
+        y = (ch - drawHeight) / 2;
+      }
+
+      canvasCtx.drawImage(image, x, y, drawWidth, drawHeight);
+    }
+
+    function drawHandSkeleton(landmarks) {
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+        color: "#00ff88",
+        lineWidth: 4
+      });
+
+      drawLandmarks(canvasCtx, landmarks, {
+        color: "#ffffff",
+        fillColor: "#ffffff",
+        lineWidth: 1,
+        radius: 4
+      });
+
+      drawLandmarks(canvasCtx, [landmarks[0]], {
+        color: "#d9265b",
+        fillColor: "#d9265b",
+        lineWidth: 1,
+        radius: 7
+      });
+    }
+
+    function handleGameFlow(gesture) {
+      setGestureLabel(gesture);
+
+      if (gameState === "IDLE") {
+        if (gesture === GESTURE.START) {
+          startHoldFrames += 1;
+
+          if (startHoldFrames > 10) {
+            startCountdown();
+          }
+        } else {
+          startHoldFrames = 0;
+        }
+      }
+
+      if (gameState === "COUNTDOWN") {
+        gestureSamples.push(gesture);
+
+        if (gestureSamples.length > 20) {
+          gestureSamples.shift();
+        }
+      }
+
+      if (gameState === "WAIT_CONTINUE") {
+        if (gesture === GESTURE.CONTINUE) {
+          continueGame();
         }
 
-        function playRound(playerChoice) {
-            const computerChoice = getComputerChoice();
-            let result = "";
-
-            if (playerChoice === computerChoice) {
-                result = "平手！";
-                draws++;
-            } else if (
-                (playerChoice === "ROCK" && computerChoice === "SCISSORS") ||
-                (playerChoice === "PAPER" && computerChoice === "ROCK") ||
-                (playerChoice === "SCISSORS" && computerChoice === "PAPER")
-            ) {
-                result = "你贏了！";
-                wins++;
-            } else {
-                result = "你輸了！";
-                losses++;
-            }
-
-            updateScore();
-            statusDisplay.innerHTML = `你:${playerChoice} VS 電腦:${computerChoice}<br>${result}`;
-            gameState = 'WAIT_CONTINUE';
-            instructionDisplay.innerHTML = "🖐️ 繼續 | 👍 結算";
+        if (gesture === GESTURE.END) {
+          endGame();
         }
+      }
+    }
 
-        function updateScore() {
-            winDisplay.innerText = wins;
-            lossDisplay.innerText = losses;
-            drawDisplay.innerText = draws;
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
+
+      drawVideoCover(results.image);
+
+      let detectedGesture = GESTURE.UNKNOWN;
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+
+        drawHandSkeleton(landmarks);
+        detectedGesture = detectGesture(landmarks);
+      } else {
+        gestureLabel.classList.remove("show");
+
+        if (gameState === "IDLE") {
+          startHoldFrames = 0;
+          statusDisplay.textContent = "☝️ 請比開始手勢";
+          subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
         }
+      }
 
-        function showSummary() {
-            gameState = 'SUMMARY';
-            statusDisplay.innerText = "";
-            summaryContent.innerHTML = `勝利: ${wins} | 失敗: ${losses} | 平手: ${draws}`;
-            summaryModal.style.display = 'block';
-        }
+      updateStableGesture(detectedGesture);
+      handleGameFlow(stableGesture);
 
-        // MediaPipe 結果處理
-        function onResults(results) {
-            canvasCtx.save();
-            
-            // 在畫布上繪製影像
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.restore();
+    }
 
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                
-                // 繪製手部骨架
-                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FFCC', lineWidth: 4});
-                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
+    async function startCamera() {
+      try {
+        resizeCanvas();
 
-                const gesture = detectGesture(landmarks);
-
-                if (gameState === 'IDLE' && gesture !== "UNKNOWN") {
-                    gameState = 'COUNTDOWN';
-                    startCountdown();
-                } else if (gameState === 'WAIT_CONTINUE') {
-                    if (gesture === 'PAPER') {
-                        gestureTimer = 0;
-                        gameState = 'COUNTDOWN';
-                        startCountdown();
-                    } else if (gesture === 'THUMB_UP') {
-                        showSummary();
-                    }
-                } else if (gameState === 'SUMMARY' && gesture === 'PAPER') {
-                    wins = 0; losses = 0; draws = 0;
-                    updateScore();
-                    summaryModal.style.display = 'none';
-                    gameState = 'COUNTDOWN';
-                    startCountdown();
-                }
-            } else {
-                if (gameState === 'IDLE') statusDisplay.innerText = "等待手部中...";
-            }
-            canvasCtx.restore();
-        }
-
-        function startCountdown() {
-            let count = 3;
-            statusDisplay.innerText = "READY...";
-            instructionDisplay.innerText = "準備出拳...";
-            
-            const timer = setInterval(() => {
-                if (count > 0) {
-                    statusDisplay.innerText = count;
-                    count--;
-                } else {
-                    clearInterval(timer);
-                    // 在倒數結束瞬間偵測手勢
-                    captureFinalGesture();
-                }
-            }, 1000);
-        }
-
-        async function captureFinalGesture() {
-            // 這邊簡單模擬：倒數結束後抓取當前鏡頭內的手勢
-            // 實務上我們會從最新的偵測結果中取值
-            statusDisplay.innerText = "去吧！";
-            
-            // 延遲一點點確保玩家手勢定型
-            setTimeout(() => {
-                const currentGesture = lastDetectedGesture; 
-                if (currentGesture === "UNKNOWN" || !currentGesture) {
-                    statusDisplay.innerText = "沒看到你的手...";
-                    gameState = 'WAIT_CONTINUE';
-                    instructionDisplay.innerText = "🖐️(布) 再次嘗試";
-                } else {
-                    playRound(currentGesture);
-                }
-            }, 500);
-        }
-
-        let lastDetectedGesture = "";
         const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
         hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.7
+          maxNumHands: 1,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.72,
+          minTrackingConfidence: 0.72
         });
 
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                lastDetectedGesture = detectGesture(results.multiHandLandmarks[0]);
-            } else {
-                lastDetectedGesture = "UNKNOWN";
-            }
-            onResults(results);
-        });
+        hands.onResults(onResults);
 
         const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 640,
-            height: 480
+          onFrame: async () => {
+            await hands.send({ image: videoElement });
+          },
+          width: 720,
+          height: 960
         });
-        camera.start();
-    </script>
+
+        await camera.start();
+
+        gameState = "IDLE";
+        statusDisplay.textContent = "☝️ 請比開始手勢";
+        subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
+        bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
+      } catch (error) {
+        console.error(error);
+        gameState = "ERROR";
+        cameraError.style.display = "flex";
+      }
+    }
+
+    continueBtn.addEventListener("click", continueGame);
+    endBtn.addEventListener("click", endGame);
+
+    updateScore();
+    startCamera();
+  </script>
 </body>
 </html>
