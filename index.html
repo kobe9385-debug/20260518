@@ -338,7 +338,7 @@
     </section>
 
     <div id="bottom-hint">
-      ☝️ 開始　👌 繼續　🖖 結束
+      ☝️ 開始　👌 繼續　🖖 結束　🤘 重新開始
     </div>
 
     <section id="result-modal">
@@ -403,6 +403,7 @@
       START: "START",
       CONTINUE: "CONTINUE",
       END: "END",
+      RESTART: "RESTART",
       UNKNOWN: "UNKNOWN"
     };
 
@@ -413,6 +414,7 @@
       START: "☝️ 開始",
       CONTINUE: "👌 繼續",
       END: "🖖 結束",
+      RESTART: "🤘 重新開始",
       UNKNOWN: ""
     };
 
@@ -426,6 +428,7 @@
     let stableCount = 0;
     let startHoldFrames = 0;
     let menuHoldFrames = 0;
+    let restartHoldFrames = 0;
 
     let countdownRunning = false;
     let gestureSamples = [];
@@ -469,13 +472,17 @@
       const mcpToWrist = distance(landmarks[mcp], landmarks[0]);
 
       const verticalExtended = landmarks[tip].y < landmarks[pip].y;
-      const distanceExtended = tipToWrist > pipToWrist && pipToWrist > mcpToWrist * 0.82;
+
+      const distanceExtended =
+        tipToWrist > pipToWrist &&
+        pipToWrist > mcpToWrist * 0.82;
 
       return verticalExtended || distanceExtended;
     }
 
     function isOkGesture(landmarks) {
       const thumbIndexClose = distance(landmarks[4], landmarks[8]) < 0.075;
+
       const middleUp = fingerIsExtended(landmarks, 12, 10, 9);
       const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
       const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
@@ -502,6 +509,15 @@
       );
     }
 
+    function isRockOnGesture(landmarks) {
+      const indexUp = fingerIsExtended(landmarks, 8, 6, 5);
+      const middleUp = fingerIsExtended(landmarks, 12, 10, 9);
+      const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
+      const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
+
+      return indexUp && !middleUp && !ringUp && pinkyUp;
+    }
+
     function detectGesture(landmarks) {
       if (!landmarks || landmarks.length < 21) return GESTURE.UNKNOWN;
 
@@ -512,8 +528,11 @@
 
       if (isOkGesture(landmarks)) return GESTURE.CONTINUE;
       if (isVulcanGesture(landmarks)) return GESTURE.END;
+      if (isRockOnGesture(landmarks)) return GESTURE.RESTART;
 
-      if (indexUp && !middleUp && !ringUp && !pinkyUp) return GESTURE.START;
+      if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        return GESTURE.START;
+      }
 
       const extendedCount = [indexUp, middleUp, ringUp, pinkyUp].filter(Boolean).length;
 
@@ -559,7 +578,8 @@
         gesture === GESTURE.SCISSORS ||
         gesture === GESTURE.START ||
         gesture === GESTURE.CONTINUE ||
-        gesture === GESTURE.END
+        gesture === GESTURE.END ||
+        gesture === GESTURE.RESTART
       ) {
         gestureLabel.textContent = `辨識：${gestureText[gesture]}`;
         gestureLabel.classList.add("show");
@@ -616,6 +636,7 @@
       countdownRunning = false;
       startHoldFrames = 0;
       menuHoldFrames = 0;
+      restartHoldFrames = 0;
 
       gestureLabel.textContent = `你出：${gestureText[playerChoice]}`;
       gestureLabel.classList.add("show");
@@ -641,6 +662,7 @@
       gestureSamples = [];
       startHoldFrames = 0;
       menuHoldFrames = 0;
+      restartHoldFrames = 0;
       countdownRunning = false;
 
       statusDisplay.textContent = "準備下一局";
@@ -655,13 +677,39 @@
     function endGame() {
       resultModal.style.display = "none";
       gestureLabel.classList.remove("show");
+
       gameState = "ENDED";
       countdownRunning = false;
       startHoldFrames = 0;
       menuHoldFrames = 0;
+      restartHoldFrames = 0;
+
       statusDisplay.textContent = "遊戲結束";
       subStatus.textContent = `最終成績：✅ ${wins}勝　❌ ${losses}敗　🤝 ${draws}平`;
-      bottomHint.textContent = "重新整理頁面即可重新開始";
+      bottomHint.textContent = "🤘 重新開始遊戲";
+    }
+
+    function restartGame() {
+      wins = 0;
+      losses = 0;
+      draws = 0;
+
+      updateScore();
+
+      resultModal.style.display = "none";
+      gestureLabel.classList.remove("show");
+
+      gestureSamples = [];
+      startHoldFrames = 0;
+      menuHoldFrames = 0;
+      restartHoldFrames = 0;
+      countdownRunning = false;
+
+      gameState = "IDLE";
+
+      statusDisplay.textContent = "☝️ 請比開始手勢";
+      subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
+      bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束　🤘 重新開始";
     }
 
     function startThinkingText() {
@@ -852,6 +900,18 @@
           menuHoldFrames = 0;
         }
       }
+
+      if (gameState === "ENDED") {
+        if (gesture === GESTURE.RESTART) {
+          restartHoldFrames += 1;
+        } else {
+          restartHoldFrames = 0;
+        }
+
+        if (restartHoldFrames > 8) {
+          restartGame();
+        }
+      }
     }
 
     function drawOnlyCameraFrame() {
@@ -958,7 +1018,7 @@
         gameState = "IDLE";
         statusDisplay.textContent = "☝️ 請比開始手勢";
         subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
-        bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
+        bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束　🤘 重新開始";
 
         processFrame();
 
