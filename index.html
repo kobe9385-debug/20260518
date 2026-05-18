@@ -6,7 +6,6 @@
   <title>AI 即時手勢辨識猜拳</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
   <style>
@@ -31,7 +30,13 @@
     }
 
     #input-video {
-      display: none;
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
 
     #game-container {
@@ -50,7 +55,6 @@
       width: 100%;
       height: 100%;
       display: block;
-      transform: scaleX(-1);
       background: #050510;
     }
 
@@ -59,7 +63,14 @@
       inset: 0;
       pointer-events: none;
       background:
-        linear-gradient(180deg, rgba(7, 7, 20, 0.95) 0%, rgba(7, 7, 20, 0.25) 18%, transparent 35%, transparent 70%, rgba(7, 7, 20, 0.65) 100%);
+        linear-gradient(
+          180deg,
+          rgba(7, 7, 20, 0.88) 0%,
+          rgba(7, 7, 20, 0.25) 18%,
+          transparent 36%,
+          transparent 70%,
+          rgba(7, 7, 20, 0.66) 100%
+        );
       z-index: 4;
     }
 
@@ -80,9 +91,8 @@
 
     #top-title {
       font-size: 18px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: 1px;
-      opacity: 0.95;
     }
 
     #corner-score {
@@ -97,7 +107,7 @@
       color: #00ff88;
       font-size: 20px;
       font-weight: 900;
-      box-shadow: 0 0 18px rgba(0, 255, 120, 0.22);
+      box-shadow: 0 0 18px rgba(0, 255, 120, 0.28);
       text-align: center;
     }
 
@@ -147,8 +157,8 @@
       margin-top: 18px;
       min-height: 30px;
       font-size: clamp(15px, 4vw, 22px);
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.78);
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.8);
       text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9);
     }
 
@@ -166,7 +176,7 @@
       text-align: center;
       line-height: 1.65;
       font-size: clamp(14px, 4vw, 18px);
-      font-weight: 700;
+      font-weight: 800;
       color: rgba(255, 255, 255, 0.58);
       background: linear-gradient(180deg, rgba(18, 17, 55, 0.62), rgba(23, 26, 72, 0.94));
       border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -233,7 +243,7 @@
       margin-bottom: 18px;
       font-size: clamp(15px, 4vw, 21px);
       color: rgba(255, 255, 255, 0.72);
-      font-weight: 800;
+      font-weight: 900;
     }
 
     .button-row {
@@ -306,7 +316,7 @@
 </head>
 
 <body>
-  <video id="input-video" playsinline muted></video>
+  <video id="input-video" playsinline muted autoplay></video>
 
   <main id="game-container">
     <canvas id="game-canvas"></canvas>
@@ -320,7 +330,8 @@
 
     <div id="corner-score">✅ 0勝</div>
 
-    <div id="gesture-label">你出：✌️ 剪刀</div>
+    <div id="gesture-label">辨識：☝️ 開始</div>
+
     <section id="main-ui">
       <div id="status-display">啟動攝影機中...</div>
       <div id="sub-status">☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀</div>
@@ -408,6 +419,8 @@
     let countdownRunning = false;
     let gestureSamples = [];
     let thinkingTimer = null;
+    let processingFrame = false;
+    let hands = null;
 
     function resizeCanvas() {
       const dpr = window.devicePixelRatio || 1;
@@ -416,6 +429,7 @@
 
       canvasElement.width = Math.floor(width * dpr);
       canvasElement.height = Math.floor(height * dpr);
+
       canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
@@ -542,6 +556,7 @@
 
     function playRound(playerChoice) {
       const computerChoice = getComputerChoice();
+
       let resultText = "";
       let resultIcon = "";
 
@@ -674,8 +689,12 @@
       const cw = canvasElement.clientWidth;
       const ch = canvasElement.clientHeight;
 
-      const iw = image.videoWidth || 640;
-      const ih = image.videoHeight || 480;
+      if (!image) return;
+
+      const iw = image.videoWidth || image.width || 640;
+      const ih = image.videoHeight || image.height || 480;
+
+      if (!iw || !ih) return;
 
       const imageRatio = iw / ih;
       const canvasRatio = cw / ch;
@@ -697,28 +716,50 @@
         y = (ch - drawHeight) / 2;
       }
 
+      canvasCtx.save();
+      canvasCtx.translate(cw, 0);
+      canvasCtx.scale(-1, 1);
       canvasCtx.drawImage(image, x, y, drawWidth, drawHeight);
+      canvasCtx.restore();
+    }
+
+    function drawPoint(point, radius, color) {
+      const cw = canvasElement.clientWidth;
+      const x = cw - point.x * cw;
+      const y = point.y * canvasElement.clientHeight;
+
+      canvasCtx.beginPath();
+      canvasCtx.arc(x, y, radius, 0, Math.PI * 2);
+      canvasCtx.fillStyle = color;
+      canvasCtx.fill();
+    }
+
+    function drawLine(a, b, color, width) {
+      const cw = canvasElement.clientWidth;
+      const ch = canvasElement.clientHeight;
+
+      const ax = cw - a.x * cw;
+      const ay = a.y * ch;
+      const bx = cw - b.x * cw;
+      const by = b.y * ch;
+
+      canvasCtx.beginPath();
+      canvasCtx.moveTo(ax, ay);
+      canvasCtx.lineTo(bx, by);
+      canvasCtx.strokeStyle = color;
+      canvasCtx.lineWidth = width;
+      canvasCtx.lineCap = "round";
+      canvasCtx.stroke();
     }
 
     function drawHandSkeleton(landmarks) {
-      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
-        color: "#00ff88",
-        lineWidth: 4
-      });
+      for (const [start, end] of HAND_CONNECTIONS) {
+        drawLine(landmarks[start], landmarks[end], "#00ff88", 4);
+      }
 
-      drawLandmarks(canvasCtx, landmarks, {
-        color: "#ffffff",
-        fillColor: "#ffffff",
-        lineWidth: 1,
-        radius: 4
-      });
-
-      drawLandmarks(canvasCtx, [landmarks[0]], {
-        color: "#d9265b",
-        fillColor: "#d9265b",
-        lineWidth: 1,
-        radius: 7
-      });
+      for (let i = 0; i < landmarks.length; i++) {
+        drawPoint(landmarks[i], i === 0 ? 7 : 4, i === 0 ? "#d9265b" : "#ffffff");
+      }
     }
 
     function handleGameFlow(gesture) {
@@ -756,7 +797,6 @@
     }
 
     function onResults(results) {
-      canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
 
       drawVideoCover(results.image);
@@ -780,15 +820,54 @@
 
       updateStableGesture(detectedGesture);
       handleGameFlow(stableGesture);
+    }
 
-      canvasCtx.restore();
+    async function processFrame() {
+      if (!hands || processingFrame) {
+        requestAnimationFrame(processFrame);
+        return;
+      }
+
+      if (videoElement.readyState >= 2) {
+        try {
+          processingFrame = true;
+          await hands.send({ image: videoElement });
+        } catch (error) {
+          console.error(error);
+        } finally {
+          processingFrame = false;
+        }
+      }
+
+      requestAnimationFrame(processFrame);
     }
 
     async function startCamera() {
       try {
         resizeCanvas();
 
-        const hands = new Hands({
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 720 },
+            height: { ideal: 960 }
+          },
+          audio: false
+        });
+
+        videoElement.srcObject = stream;
+        videoElement.setAttribute("playsinline", "true");
+        videoElement.setAttribute("muted", "true");
+        videoElement.setAttribute("autoplay", "true");
+        videoElement.muted = true;
+
+        await new Promise(resolve => {
+          videoElement.onloadedmetadata = resolve;
+        });
+
+        await videoElement.play();
+
+        hands = new Hands({
           locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
 
@@ -801,20 +880,12 @@
 
         hands.onResults(onResults);
 
-        const camera = new Camera(videoElement, {
-          onFrame: async () => {
-            await hands.send({ image: videoElement });
-          },
-          width: 720,
-          height: 960
-        });
-
-        await camera.start();
-
         gameState = "IDLE";
         statusDisplay.textContent = "☝️ 請比開始手勢";
         subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
         bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
+
+        processFrame();
       } catch (error) {
         console.error(error);
         gameState = "ERROR";
