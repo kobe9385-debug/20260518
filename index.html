@@ -65,8 +65,8 @@
       background:
         linear-gradient(
           180deg,
-          rgba(7, 7, 20, 0.78) 0%,
-          rgba(7, 7, 20, 0.18) 18%,
+          rgba(7, 7, 20, 0.76) 0%,
+          rgba(7, 7, 20, 0.16) 18%,
           transparent 36%,
           transparent 70%,
           rgba(7, 7, 20, 0.56) 100%
@@ -334,7 +334,7 @@
 
     <section id="main-ui">
       <div id="status-display">啟動攝影機中...</div>
-      <div id="sub-status">☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀</div>
+      <div id="sub-status">請允許攝影機權限</div>
     </section>
 
     <div id="bottom-hint">
@@ -359,7 +359,8 @@
         <h1>攝影機啟動失敗</h1>
         <p>
           請確認瀏覽器已允許攝影機權限。<br />
-          若使用 GitHub Pages，網址必須是 HTTPS。
+          若使用 GitHub Pages，網址必須是 HTTPS。<br />
+          請重新整理頁面再試一次。
         </p>
       </div>
     </section>
@@ -431,6 +432,7 @@
     let thinkingTimer = null;
     let processingFrame = false;
     let hands = null;
+    let streamReady = false;
 
     let drawRect = {
       x: 0,
@@ -494,9 +496,9 @@
       const ringPinkyGap = distance(landmarks[16], landmarks[20]);
 
       return (
-        middleRingGap > indexMiddleGap * 1.15 &&
-        middleRingGap > ringPinkyGap * 1.15 &&
-        middleRingGap > 0.055
+        middleRingGap > indexMiddleGap * 1.1 &&
+        middleRingGap > ringPinkyGap * 1.1 &&
+        middleRingGap > 0.05
       );
     }
 
@@ -508,17 +510,10 @@
       const ringUp = fingerIsExtended(landmarks, 16, 14, 13);
       const pinkyUp = fingerIsExtended(landmarks, 20, 18, 17);
 
-      if (isOkGesture(landmarks)) {
-        return GESTURE.CONTINUE;
-      }
+      if (isOkGesture(landmarks)) return GESTURE.CONTINUE;
+      if (isVulcanGesture(landmarks)) return GESTURE.END;
 
-      if (isVulcanGesture(landmarks)) {
-        return GESTURE.END;
-      }
-
-      if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-        return GESTURE.START;
-      }
+      if (indexUp && !middleUp && !ringUp && !pinkyUp) return GESTURE.START;
 
       const extendedCount = [indexUp, middleUp, ringUp, pinkyUp].filter(Boolean).length;
 
@@ -859,10 +854,17 @@
       }
     }
 
+    function drawOnlyCameraFrame() {
+      if (!streamReady) return;
+
+      canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
+      drawVideoCover(videoElement);
+    }
+
     function onResults(results) {
       canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
 
-      drawVideoCover(results.image);
+      drawVideoCover(results.image || videoElement);
 
       let detectedGesture = GESTURE.UNKNOWN;
 
@@ -886,28 +888,52 @@
     }
 
     async function processFrame() {
-      if (!hands || processingFrame) {
+      if (!streamReady) {
         requestAnimationFrame(processFrame);
         return;
       }
 
-      if (videoElement.readyState >= 2) {
-        try {
-          processingFrame = true;
-          await hands.send({ image: videoElement });
-        } catch (error) {
-          console.error(error);
-        } finally {
-          processingFrame = false;
-        }
+      if (!hands || processingFrame || videoElement.readyState < 2) {
+        drawOnlyCameraFrame();
+        requestAnimationFrame(processFrame);
+        return;
+      }
+
+      try {
+        processingFrame = true;
+        await hands.send({ image: videoElement });
+      } catch (error) {
+        console.error(error);
+        drawOnlyCameraFrame();
+      } finally {
+        processingFrame = false;
       }
 
       requestAnimationFrame(processFrame);
     }
 
+    async function waitForVideoReady(video, timeout = 2500) {
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        return;
+      }
+
+      await Promise.race([
+        new Promise(resolve => {
+          video.onloadedmetadata = resolve;
+          video.onloadeddata = resolve;
+          video.oncanplay = resolve;
+        }),
+        new Promise(resolve => setTimeout(resolve, timeout))
+      ]);
+    }
+
     async function startCamera() {
       try {
         resizeCanvas();
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("getUserMedia 不支援");
+        }
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -924,11 +950,17 @@
         videoElement.setAttribute("autoplay", "true");
         videoElement.muted = true;
 
-        await new Promise(resolve => {
-          videoElement.onloadedmetadata = resolve;
-        });
+        await videoElement.play().catch(() => {});
+        await waitForVideoReady(videoElement);
 
-        await videoElement.play();
+        streamReady = true;
+
+        gameState = "IDLE";
+        statusDisplay.textContent = "☝️ 請比開始手勢";
+        subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
+        bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
+
+        processFrame();
 
         hands = new Hands({
           locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -942,13 +974,6 @@
         });
 
         hands.onResults(onResults);
-
-        gameState = "IDLE";
-        statusDisplay.textContent = "☝️ 請比開始手勢";
-        subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
-        bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束";
-
-        processFrame();
       } catch (error) {
         console.error(error);
         gameState = "ERROR";
