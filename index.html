@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AI 即時手勢辨識猜拳</title>
+  <title>AI 手勢對戰終端</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
@@ -21,7 +21,7 @@
       height: 100%;
       height: 100dvh;
       overflow: hidden;
-      background: #050510;
+      background: #050712;
       font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
       color: white;
       touch-action: none;
@@ -44,8 +44,22 @@
       height: 100dvh;
       overflow: hidden;
       background:
-        radial-gradient(circle at 80% 20%, rgba(85, 40, 190, 0.45), transparent 40%),
-        linear-gradient(180deg, #151345 0%, #070710 50%, #12123a 100%);
+        radial-gradient(circle at 20% 10%, rgba(0, 255, 210, 0.22), transparent 32%),
+        radial-gradient(circle at 85% 72%, rgba(255, 70, 160, 0.22), transparent 36%),
+        linear-gradient(160deg, #050712 0%, #101428 52%, #070914 100%);
+    }
+
+    #game-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent 85%);
     }
 
     #game-canvas {
@@ -54,7 +68,7 @@
       width: 100%;
       height: 100%;
       display: block;
-      background: #050510;
+      background: #050712;
       z-index: 1;
     }
 
@@ -62,53 +76,81 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background:
-        linear-gradient(
-          180deg,
-          rgba(7, 7, 20, 0.76) 0%,
-          rgba(7, 7, 20, 0.16) 18%,
-          transparent 36%,
-          transparent 70%,
-          rgba(7, 7, 20, 0.56) 100%
-        );
       z-index: 4;
+      background:
+        linear-gradient(180deg, rgba(3, 6, 18, 0.88) 0%, rgba(3, 6, 18, 0.1) 26%, transparent 52%, rgba(3, 6, 18, 0.68) 100%);
     }
 
     #top-bar {
       position: absolute;
-      top: env(safe-area-inset-top, 0);
-      left: 0;
-      width: 100%;
-      height: 88px;
+      top: calc(env(safe-area-inset-top, 0) + 14px);
+      left: 14px;
+      right: 14px;
+      height: 76px;
       z-index: 20;
-      background: linear-gradient(180deg, rgba(24, 22, 74, 0.96), rgba(16, 15, 48, 0.82));
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      justify-content: center;
-      padding: 0 18px;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid rgba(0, 255, 220, 0.28);
+      border-radius: 22px;
+      background: rgba(6, 10, 26, 0.72);
+      backdrop-filter: blur(12px);
+      box-shadow:
+        0 0 28px rgba(0, 255, 220, 0.12),
+        inset 0 0 24px rgba(255, 255, 255, 0.035);
     }
 
     #top-title {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 900;
+      letter-spacing: 2px;
+      color: #dffcff;
+    }
+
+    #top-subtitle {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(180, 250, 255, 0.6);
       letter-spacing: 1px;
     }
 
     #corner-score {
-      position: absolute;
-      top: calc(env(safe-area-inset-top, 0) + 106px);
-      right: 14px;
-      z-index: 30;
-      min-width: 78px;
-      padding: 10px 14px;
-      border-radius: 14px 0 0 14px;
-      background: rgba(0, 0, 0, 0.88);
-      color: #00ff88;
-      font-size: 20px;
+      min-width: 76px;
+      padding: 9px 12px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(0,255,180,0.18), rgba(255,255,255,0.06));
+      color: #62ffd3;
+      font-size: 17px;
       font-weight: 900;
-      box-shadow: 0 0 18px rgba(0, 255, 120, 0.28);
       text-align: center;
+      border: 1px solid rgba(98, 255, 211, 0.32);
+    }
+
+    #gesture-label {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0) + 108px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 32;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(7, 10, 24, 0.68);
+      backdrop-filter: blur(10px);
+      font-size: clamp(15px, 4vw, 22px);
+      font-weight: 900;
+      color: #f7fbff;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+      box-shadow: 0 0 18px rgba(0, 255, 220, 0.12);
+    }
+
+    #gesture-label.show {
+      opacity: 1;
     }
 
     #main-ui {
@@ -116,71 +158,67 @@
       inset: 0;
       z-index: 25;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       pointer-events: none;
-      padding: 100px 16px 130px;
+      padding: 126px 18px 130px;
       text-align: center;
     }
 
-    #gesture-label {
-      position: absolute;
-      top: calc(env(safe-area-inset-top, 0) + 155px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 32;
-      font-size: clamp(24px, 7vw, 42px);
-      font-weight: 900;
-      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.9);
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      white-space: nowrap;
-    }
-
-    #gesture-label.show {
-      opacity: 1;
+    #command-panel {
+      width: min(92vw, 480px);
+      padding: 22px 18px;
+      border-radius: 26px;
+      background: rgba(5, 8, 22, 0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      box-shadow:
+        0 24px 80px rgba(0,0,0,0.42),
+        inset 0 0 22px rgba(255,255,255,0.035);
     }
 
     #status-display {
-      font-size: clamp(34px, 11vw, 86px);
-      font-weight: 900;
-      line-height: 1.15;
-      text-shadow:
-        0 5px 24px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(255, 255, 255, 0.32);
+      font-size: clamp(32px, 10vw, 72px);
+      font-weight: 1000;
+      line-height: 1.08;
       letter-spacing: 2px;
+      color: #ffffff;
+      text-shadow:
+        0 0 18px rgba(0, 255, 220, 0.32),
+        0 6px 26px rgba(0, 0, 0, 0.9);
       white-space: pre-line;
     }
 
     #sub-status {
-      margin-top: 18px;
+      margin-top: 14px;
       min-height: 30px;
-      font-size: clamp(15px, 4vw, 22px);
+      font-size: clamp(14px, 3.8vw, 20px);
       font-weight: 800;
-      color: rgba(255, 255, 255, 0.8);
-      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9);
+      color: rgba(220, 245, 255, 0.72);
+      line-height: 1.5;
     }
 
     #bottom-hint {
       position: absolute;
-      left: 0;
-      bottom: env(safe-area-inset-bottom, 0);
+      left: 14px;
+      right: 14px;
+      bottom: calc(env(safe-area-inset-bottom, 0) + 14px);
       z-index: 35;
-      width: 100%;
-      min-height: 96px;
-      padding: 18px 16px 28px;
+      min-height: 76px;
+      padding: 14px 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
-      line-height: 1.65;
-      font-size: clamp(14px, 4vw, 18px);
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.58);
-      background: linear-gradient(180deg, rgba(18, 17, 55, 0.62), rgba(23, 26, 72, 0.94));
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
+      line-height: 1.6;
+      font-size: clamp(13px, 3.6vw, 17px);
+      font-weight: 900;
+      color: rgba(235, 250, 255, 0.72);
+      background: rgba(5, 8, 22, 0.72);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 22px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 24px rgba(255, 70, 160, 0.12);
     }
 
     #round-flash {
@@ -193,7 +231,7 @@
     }
 
     #round-flash.active {
-      background: rgba(255, 255, 255, 0.22);
+      background: rgba(0, 255, 220, 0.18);
     }
 
     #result-modal {
@@ -204,73 +242,76 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(7px);
+      background: rgba(2, 4, 12, 0.58);
+      backdrop-filter: blur(10px);
     }
 
     #result-card {
       width: min(92vw, 520px);
-      padding: 32px 24px 28px;
-      border-radius: 28px;
-      background: rgba(15, 15, 18, 0.72);
+      padding: 28px 22px;
+      border-radius: 30px;
+      background:
+        linear-gradient(145deg, rgba(0,255,220,0.12), transparent 32%),
+        rgba(8, 12, 30, 0.88);
+      border: 1px solid rgba(0, 255, 220, 0.22);
       box-shadow:
-        0 0 40px rgba(0, 0, 0, 0.55),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 0 54px rgba(0, 0, 0, 0.55),
+        0 0 28px rgba(0, 255, 220, 0.12);
       text-align: center;
     }
 
     #result-title {
       margin: 0 0 14px;
-      font-size: clamp(38px, 10vw, 64px);
-      font-weight: 900;
+      font-size: clamp(32px, 8.5vw, 54px);
+      font-weight: 1000;
       letter-spacing: 2px;
-      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      color: #ffffff;
     }
 
     #result-score {
       width: 100%;
-      margin: 0 auto 26px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      font-size: clamp(18px, 4.8vw, 26px);
+      margin: 0 auto 20px;
+      padding: 14px;
+      border-radius: 18px;
+      font-size: clamp(17px, 4.5vw, 24px);
       font-weight: 900;
-      color: rgba(255, 255, 255, 0.82);
-      background: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.08);
+      color: rgba(235, 250, 255, 0.9);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255,255,255,0.09);
     }
 
     #result-hint {
       margin-bottom: 18px;
-      font-size: clamp(15px, 4vw, 21px);
-      color: rgba(255, 255, 255, 0.72);
+      font-size: clamp(15px, 4vw, 20px);
+      color: rgba(220, 245, 255, 0.68);
       font-weight: 900;
     }
 
     .button-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 18px;
+      gap: 14px;
     }
 
     .game-btn {
-      height: 78px;
+      height: 70px;
       border: none;
-      border-radius: 999px;
+      border-radius: 20px;
       color: white;
-      font-size: clamp(20px, 5.5vw, 32px);
-      font-weight: 900;
+      font-size: clamp(18px, 5vw, 28px);
+      font-weight: 1000;
       cursor: pointer;
-      box-shadow: 0 0 26px rgba(0, 0, 0, 0.35);
     }
 
     #end-btn {
-      background: linear-gradient(180deg, #ff2a15, #db1303);
+      background: linear-gradient(135deg, #ff3f7d, #822fff);
+      box-shadow: 0 0 24px rgba(255, 63, 125, 0.22);
     }
 
     #continue-btn {
-      color: #00d66e;
-      background: #fff;
-      box-shadow: 0 0 26px rgba(0, 255, 120, 0.32);
+      color: #03110e;
+      background: linear-gradient(135deg, #60ffd5, #c4fff0);
+      box-shadow: 0 0 24px rgba(0, 255, 220, 0.25);
     }
 
     #camera-error {
@@ -325,31 +366,35 @@
     <div id="round-flash"></div>
 
     <header id="top-bar">
-      <div id="top-title">AI 即時手勢辨識猜拳</div>
+      <div>
+        <div id="top-title">GESTURE DUEL TERMINAL</div>
+        <div id="top-subtitle">AI RPS SYSTEM / LIVE HAND TRACKING</div>
+      </div>
+      <div id="corner-score">WIN 0</div>
     </header>
 
-    <div id="corner-score">✅ 0勝</div>
-
-    <div id="gesture-label">辨識：☝️ 開始</div>
+    <div id="gesture-label">SCAN：☝️ START</div>
 
     <section id="main-ui">
-      <div id="status-display">啟動攝影機中...</div>
-      <div id="sub-status">請允許攝影機權限</div>
+      <div id="command-panel">
+        <div id="status-display">CAMERA<br>BOOTING</div>
+        <div id="sub-status">等待攝影機權限與影像串流</div>
+      </div>
     </section>
 
     <div id="bottom-hint">
-      ☝️ 開始　👌 繼續　🖖 結束　🤘 重新開始
+      ☝️ 啟動對戰　👌 下一回合　🖖 結束任務　🤘 重啟終端
     </div>
 
     <section id="result-modal">
       <div id="result-card">
-        <h1 id="result-title">再玩一局？</h1>
-        <div id="result-score">✅ 0勝　❌ 0敗　🤝 0平</div>
-        <div id="result-hint">👌 繼續　🖖 結束</div>
+        <h1 id="result-title">ROUND COMPLETE</h1>
+        <div id="result-score">WIN 0　LOSE 0　DRAW 0</div>
+        <div id="result-hint">👌 下一回合　🖖 結束任務</div>
 
         <div class="button-row">
-          <button id="end-btn" class="game-btn">🖖 結束</button>
-          <button id="continue-btn" class="game-btn">👌 繼續</button>
+          <button id="end-btn" class="game-btn">🖖 END</button>
+          <button id="continue-btn" class="game-btn">👌 NEXT</button>
         </div>
       </div>
     </section>
@@ -408,13 +453,13 @@
     };
 
     const gestureText = {
-      ROCK: "✊ 石頭",
-      PAPER: "🖐️ 布",
-      SCISSORS: "✌️ 剪刀",
-      START: "☝️ 開始",
-      CONTINUE: "👌 繼續",
-      END: "🖖 結束",
-      RESTART: "🤘 重新開始",
+      ROCK: "✊ ROCK",
+      PAPER: "🖐️ PAPER",
+      SCISSORS: "✌️ SCISSORS",
+      START: "☝️ START",
+      CONTINUE: "👌 NEXT",
+      END: "🖖 END",
+      RESTART: "🤘 REBOOT",
       UNKNOWN: ""
     };
 
@@ -562,8 +607,8 @@
     }
 
     function updateScore() {
-      cornerScore.textContent = `✅ ${wins}勝`;
-      resultScore.textContent = `✅ ${wins}勝　❌ ${losses}敗　🤝 ${draws}平`;
+      cornerScore.textContent = `WIN ${wins}`;
+      resultScore.textContent = `WIN ${wins}　LOSE ${losses}　DRAW ${draws}`;
     }
 
     function flash() {
@@ -581,7 +626,7 @@
         gesture === GESTURE.END ||
         gesture === GESTURE.RESTART
       ) {
-        gestureLabel.textContent = `辨識：${gestureText[gesture]}`;
+        gestureLabel.textContent = `SCAN：${gestureText[gesture]}`;
         gestureLabel.classList.add("show");
       } else {
         gestureLabel.classList.remove("show");
@@ -613,7 +658,7 @@
 
       if (playerChoice === computerChoice) {
         draws++;
-        resultText = "平手";
+        resultText = "DRAW";
         resultIcon = "🤝";
       } else if (
         (playerChoice === GESTURE.ROCK && computerChoice === GESTURE.SCISSORS) ||
@@ -621,11 +666,11 @@
         (playerChoice === GESTURE.SCISSORS && computerChoice === GESTURE.PAPER)
       ) {
         wins++;
-        resultText = "你贏了";
+        resultText = "PLAYER WIN";
         resultIcon = "✅";
       } else {
         losses++;
-        resultText = "你輸了";
+        resultText = "AI WIN";
         resultIcon = "❌";
       }
 
@@ -638,11 +683,11 @@
       menuHoldFrames = 0;
       restartHoldFrames = 0;
 
-      gestureLabel.textContent = `你出：${gestureText[playerChoice]}`;
+      gestureLabel.textContent = `PLAYER：${gestureText[playerChoice]}`;
       gestureLabel.classList.add("show");
 
-      statusDisplay.innerHTML = `${resultIcon} ${resultText}`;
-      subStatus.innerHTML = `電腦出：${gestureText[computerChoice]}`;
+      statusDisplay.innerHTML = `${resultIcon}<br>${resultText}`;
+      subStatus.innerHTML = `AI OUTPUT：${gestureText[computerChoice]}`;
 
       setTimeout(showContinueModal, 1300);
     }
@@ -650,24 +695,25 @@
     function showContinueModal() {
       gameState = "WAIT_CONTINUE";
       resultModal.style.display = "flex";
-      resultTitle.textContent = "再玩一局？";
-      resultHint.textContent = "👌 繼續　🖖 結束";
-      bottomHint.textContent = "👌 繼續　🖖 結束";
+      resultTitle.textContent = "ROUND COMPLETE";
+      resultHint.textContent = "👌 下一回合　🖖 結束任務";
+      bottomHint.textContent = "👌 下一回合　🖖 結束任務";
       updateScore();
     }
 
     function continueGame() {
       resultModal.style.display = "none";
       gestureLabel.classList.remove("show");
+
       gestureSamples = [];
       startHoldFrames = 0;
       menuHoldFrames = 0;
       restartHoldFrames = 0;
       countdownRunning = false;
 
-      statusDisplay.textContent = "準備下一局";
-      subStatus.textContent = "請固定 ✊ 石頭、🖐️ 布或 ✌️ 剪刀";
-      bottomHint.textContent = "倒數結束時請固定手勢";
+      statusDisplay.textContent = "NEXT ROUND";
+      subStatus.textContent = "請固定 ✊ ROCK、🖐️ PAPER 或 ✌️ SCISSORS";
+      bottomHint.textContent = "倒數結束時鎖定手勢";
 
       setTimeout(() => {
         startCountdown();
@@ -684,9 +730,9 @@
       menuHoldFrames = 0;
       restartHoldFrames = 0;
 
-      statusDisplay.textContent = "遊戲結束";
-      subStatus.textContent = `最終成績：✅ ${wins}勝　❌ ${losses}敗　🤝 ${draws}平`;
-      bottomHint.textContent = "🤘 重新開始遊戲";
+      statusDisplay.textContent = "MISSION END";
+      subStatus.textContent = `FINAL：WIN ${wins} / LOSE ${losses} / DRAW ${draws}`;
+      bottomHint.textContent = "🤘 重啟終端";
     }
 
     function restartGame() {
@@ -705,19 +751,21 @@
       restartHoldFrames = 0;
       countdownRunning = false;
 
-      gameState = "IDLE";
+      statusDisplay.textContent = "REBOOT";
+      subStatus.textContent = "請固定 ✊ ROCK、🖐️ PAPER 或 ✌️ SCISSORS";
+      bottomHint.textContent = "倒數結束時鎖定手勢";
 
-      statusDisplay.textContent = "☝️ 請比開始手勢";
-      subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
-      bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束　🤘 重新開始";
+      setTimeout(() => {
+        startCountdown();
+      }, 450);
     }
 
     function startThinkingText() {
       const texts = [
-        "電腦正在思考",
-        "AI 正在觀察",
-        "系統正在判斷",
-        "正在讀取手勢"
+        "AI 正在比對手勢資料",
+        "終端正在鎖定輸入",
+        "對戰模型計算中",
+        "手勢樣本收集中"
       ];
 
       let index = 0;
@@ -744,18 +792,18 @@
       resultModal.style.display = "none";
       gestureLabel.classList.remove("show");
 
-      bottomHint.textContent = "倒數結束時請固定 ✊ 石頭、🖐️ 布或 ✌️ 剪刀";
-      subStatus.textContent = "準備出拳";
+      bottomHint.textContent = "倒數結束時鎖定 ✊ / 🖐️ / ✌️";
+      subStatus.textContent = "手勢輸入準備中";
       startThinkingText();
 
-      const sequence = ["3", "2", "1"];
+      const sequence = ["03", "02", "01"];
 
       for (const number of sequence) {
         statusDisplay.textContent = number;
         await wait(800);
       }
 
-      statusDisplay.textContent = "出拳";
+      statusDisplay.textContent = "LOCK";
       await wait(350);
 
       const finalGesture = getGestureFromSamples();
@@ -763,289 +811,7 @@
       if (finalGesture === GESTURE.UNKNOWN) {
         gameState = "IDLE";
         countdownRunning = false;
-        statusDisplay.textContent = "沒有辨識到";
-        subStatus.textContent = "請重新比 ☝️ 開始";
-        bottomHint.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
+        statusDisplay.textContent = "NO INPUT";
+        subStatus.textContent = "請重新比 ☝️ 啟動對戰";
+        bottomHint.textContent = "☝️ 啟動對戰　👌 下一回合　🖖 結束任務　🤘 重啟終端";
         startHoldFrames = 0;
-        return;
-      }
-
-      playRound(finalGesture);
-    }
-
-    function drawVideoCover(image) {
-      const cw = canvasElement.clientWidth;
-      const ch = canvasElement.clientHeight;
-
-      if (!image) return;
-
-      const iw = image.videoWidth || image.width || 640;
-      const ih = image.videoHeight || image.height || 480;
-
-      if (!iw || !ih) return;
-
-      const imageRatio = iw / ih;
-      const canvasRatio = cw / ch;
-
-      if (imageRatio > canvasRatio) {
-        drawRect.height = ch;
-        drawRect.width = drawRect.height * imageRatio;
-        drawRect.x = (cw - drawRect.width) / 2;
-        drawRect.y = 0;
-      } else {
-        drawRect.width = cw;
-        drawRect.height = drawRect.width / imageRatio;
-        drawRect.x = 0;
-        drawRect.y = (ch - drawRect.height) / 2;
-      }
-
-      canvasCtx.save();
-      canvasCtx.translate(cw, 0);
-      canvasCtx.scale(-1, 1);
-      canvasCtx.drawImage(image, drawRect.x, drawRect.y, drawRect.width, drawRect.height);
-      canvasCtx.restore();
-    }
-
-    function mapPoint(point) {
-      return {
-        x: drawRect.x + (1 - point.x) * drawRect.width,
-        y: drawRect.y + point.y * drawRect.height
-      };
-    }
-
-    function drawPoint(point, radius, color) {
-      const p = mapPoint(point);
-
-      canvasCtx.beginPath();
-      canvasCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-      canvasCtx.fillStyle = color;
-      canvasCtx.shadowColor = color;
-      canvasCtx.shadowBlur = 10;
-      canvasCtx.fill();
-      canvasCtx.shadowBlur = 0;
-    }
-
-    function drawLine(a, b, color, width) {
-      const p1 = mapPoint(a);
-      const p2 = mapPoint(b);
-
-      canvasCtx.beginPath();
-      canvasCtx.moveTo(p1.x, p1.y);
-      canvasCtx.lineTo(p2.x, p2.y);
-      canvasCtx.strokeStyle = color;
-      canvasCtx.lineWidth = width;
-      canvasCtx.lineCap = "round";
-      canvasCtx.lineJoin = "round";
-      canvasCtx.shadowColor = color;
-      canvasCtx.shadowBlur = 12;
-      canvasCtx.stroke();
-      canvasCtx.shadowBlur = 0;
-    }
-
-    function drawHandSkeleton(landmarks) {
-      for (const [start, end] of HAND_CONNECTIONS_LOCAL) {
-        drawLine(landmarks[start], landmarks[end], "#00ff88", 4);
-      }
-
-      for (let i = 0; i < landmarks.length; i++) {
-        if (i === 0) {
-          drawPoint(landmarks[i], 8, "#d9265b");
-        } else if ([4, 8, 12, 16, 20].includes(i)) {
-          drawPoint(landmarks[i], 5, "#00ff88");
-        } else {
-          drawPoint(landmarks[i], 4, "#ffffff");
-        }
-      }
-    }
-
-    function handleGameFlow(gesture) {
-      setGestureLabel(gesture);
-
-      if (gameState === "IDLE") {
-        if (gesture === GESTURE.START) {
-          startHoldFrames += 1;
-
-          if (startHoldFrames > 10) {
-            startCountdown();
-          }
-        } else {
-          startHoldFrames = 0;
-        }
-      }
-
-      if (gameState === "COUNTDOWN") {
-        gestureSamples.push(gesture);
-
-        if (gestureSamples.length > 20) {
-          gestureSamples.shift();
-        }
-      }
-
-      if (gameState === "WAIT_CONTINUE") {
-        if (gesture === GESTURE.CONTINUE || gesture === GESTURE.END) {
-          menuHoldFrames += 1;
-        } else {
-          menuHoldFrames = 0;
-        }
-
-        if (menuHoldFrames > 8) {
-          if (gesture === GESTURE.CONTINUE) {
-            continueGame();
-          }
-
-          if (gesture === GESTURE.END) {
-            endGame();
-          }
-
-          menuHoldFrames = 0;
-        }
-      }
-
-      if (gameState === "ENDED") {
-        if (gesture === GESTURE.RESTART) {
-          restartHoldFrames += 1;
-        } else {
-          restartHoldFrames = 0;
-        }
-
-        if (restartHoldFrames > 8) {
-          restartGame();
-        }
-      }
-    }
-
-    function drawOnlyCameraFrame() {
-      if (!streamReady) return;
-
-      canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
-      drawVideoCover(videoElement);
-    }
-
-    function onResults(results) {
-      canvasCtx.clearRect(0, 0, canvasElement.clientWidth, canvasElement.clientHeight);
-
-      drawVideoCover(results.image || videoElement);
-
-      let detectedGesture = GESTURE.UNKNOWN;
-
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
-
-        drawHandSkeleton(landmarks);
-        detectedGesture = detectGesture(landmarks);
-      } else {
-        gestureLabel.classList.remove("show");
-
-        if (gameState === "IDLE") {
-          startHoldFrames = 0;
-          statusDisplay.textContent = "☝️ 請比開始手勢";
-          subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
-        }
-      }
-
-      updateStableGesture(detectedGesture);
-      handleGameFlow(stableGesture);
-    }
-
-    async function processFrame() {
-      if (!streamReady) {
-        requestAnimationFrame(processFrame);
-        return;
-      }
-
-      if (!hands || processingFrame || videoElement.readyState < 2) {
-        drawOnlyCameraFrame();
-        requestAnimationFrame(processFrame);
-        return;
-      }
-
-      try {
-        processingFrame = true;
-        await hands.send({ image: videoElement });
-      } catch (error) {
-        console.error(error);
-        drawOnlyCameraFrame();
-      } finally {
-        processingFrame = false;
-      }
-
-      requestAnimationFrame(processFrame);
-    }
-
-    async function waitForVideoReady(video, timeout = 2500) {
-      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-        return;
-      }
-
-      await Promise.race([
-        new Promise(resolve => {
-          video.onloadedmetadata = resolve;
-          video.onloadeddata = resolve;
-          video.oncanplay = resolve;
-        }),
-        new Promise(resolve => setTimeout(resolve, timeout))
-      ]);
-    }
-
-    async function startCamera() {
-      try {
-        resizeCanvas();
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("getUserMedia 不支援");
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "user",
-            width: { ideal: 720 },
-            height: { ideal: 960 }
-          },
-          audio: false
-        });
-
-        videoElement.srcObject = stream;
-        videoElement.setAttribute("playsinline", "true");
-        videoElement.setAttribute("muted", "true");
-        videoElement.setAttribute("autoplay", "true");
-        videoElement.muted = true;
-
-        await videoElement.play().catch(() => {});
-        await waitForVideoReady(videoElement);
-
-        streamReady = true;
-
-        gameState = "IDLE";
-        statusDisplay.textContent = "☝️ 請比開始手勢";
-        subStatus.textContent = "☝️ 開始　✊ 石頭　🖐️ 布　✌️ 剪刀";
-        bottomHint.textContent = "☝️ 開始　👌 繼續　🖖 結束　🤘 重新開始";
-
-        processFrame();
-
-        hands = new Hands({
-          locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-
-        hands.setOptions({
-          maxNumHands: 1,
-          modelComplexity: 1,
-          minDetectionConfidence: 0.72,
-          minTrackingConfidence: 0.72
-        });
-
-        hands.onResults(onResults);
-      } catch (error) {
-        console.error(error);
-        gameState = "ERROR";
-        cameraError.style.display = "flex";
-      }
-    }
-
-    continueBtn.addEventListener("click", continueGame);
-    endBtn.addEventListener("click", endGame);
-
-    updateScore();
-    startCamera();
-  </script>
-</body>
-</html>
